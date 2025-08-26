@@ -16,13 +16,37 @@ export async function processImage(file: File): Promise<ProcessedImage> {
   // Load image
   const img = await loadImage(file)
   
+  // Convert original to WebP if it's not already AVIF/WebP
+  let original: File | Blob = file
+  if (file.type !== 'image/avif' && file.type !== 'image/webp') {
+    // Convert original to WebP for consistency
+    canvas.width = img.width
+    canvas.height = img.height
+    ctx.drawImage(img, 0, 0)
+    
+    original = await new Promise((resolve, reject) => {
+      canvas.toBlob(
+        (blob) => {
+          if (blob) {
+            console.log(`📁 Original converted to WebP: ${(blob.size / 1024).toFixed(1)}KB (was ${(file.size / 1024).toFixed(1)}KB)`)
+            resolve(blob)
+          } else {
+            resolve(file) // Keep original if conversion fails
+          }
+        },
+        'image/webp',
+        0.8 // Higher quality for original
+      )
+    })
+  }
+  
   // Process different sizes
   const small = await resizeImage(img, 400, canvas, ctx)
   const medium = await resizeImage(img, 800, canvas, ctx)
   const large = await resizeImage(img, 1200, canvas, ctx)
 
   return {
-    original: file,
+    original: original as File,
     small,
     medium,
     large
@@ -52,9 +76,9 @@ async function resizeImage(
   canvas: HTMLCanvasElement,
   ctx: CanvasRenderingContext2D
 ): Promise<Blob> {
-  // For cropped images, they're already square (1:1)
-  // Just resize maintaining the square aspect ratio
-  let size = Math.min(img.width, maxWidth)
+  // Always resize to exact target size for consistency
+  // Images are already square (1:1) from crop editor
+  const size = maxWidth
   
   // Set canvas dimensions (square)
   canvas.width = size
@@ -63,39 +87,34 @@ async function resizeImage(
   // Draw resized image (already square from crop)
   ctx.drawImage(img, 0, 0, img.width, img.height, 0, 0, size, size)
   
-  // Convert to blob with quality optimization
-  // Try AVIF first, fall back to WebP, then JPEG
+  // Convert to blob with aggressive quality optimization for fast loading
+  // Only use modern formats (AVIF or WebP) - no JPEG fallback
   return new Promise((resolve, reject) => {
-    // Try AVIF format first (best compression)
+    // Try AVIF format first (best compression - 50-70% smaller than JPEG)
     canvas.toBlob(
-      (blob) => {
-        if (blob) {
-          resolve(blob)
+      (avifBlob) => {
+        if (avifBlob) {
+          console.log(`✅ AVIF created: ${maxWidth}px - Size: ${(avifBlob.size / 1024).toFixed(1)}KB`)
+          resolve(avifBlob)
         } else {
-          // Fallback to WebP
+          // Fallback to WebP only (still 25-35% smaller than JPEG)
           canvas.toBlob(
             (webpBlob) => {
               if (webpBlob) {
+                console.log(`✅ WebP created: ${maxWidth}px - Size: ${(webpBlob.size / 1024).toFixed(1)}KB`)
                 resolve(webpBlob)
               } else {
-                // Final fallback to JPEG
-                canvas.toBlob(
-                  (jpegBlob) => {
-                    if (jpegBlob) resolve(jpegBlob)
-                    else reject(new Error('Failed to create blob'))
-                  },
-                  'image/jpeg',
-                  0.85
-                )
+                // No JPEG fallback - WebP is universally supported
+                reject(new Error('Failed to create image - browser does not support modern formats'))
               }
             },
             'image/webp',
-            0.85
+            0.65 // Lower quality for better compression
           )
         }
       },
       'image/avif',
-      0.85
+      0.6 // Aggressive compression for AVIF - still looks great
     )
   })
 }
@@ -157,11 +176,11 @@ export async function uploadProcessedImages(
   
   const basePath = `${sanitizePathSegment(category)}/${sanitizePathSegment(itemName)}_${timestamp}`
   
-  // Get file extension based on blob type
+  // Get file extension based on blob type - only modern formats
   const getExtension = (blob: Blob | File) => {
     if (blob.type === 'image/avif') return 'avif'
-    if (blob.type === 'image/webp') return 'webp'
-    return 'jpg'
+    // Default to webp extension since it's universally supported
+    return 'webp'
   }
   
   // Upload all sizes
