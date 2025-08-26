@@ -3,7 +3,8 @@ import { Upload, X, Loader2, Image as ImageIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { processImage, uploadProcessedImages } from '@/lib/imageProcessor'
+import { processImage, uploadProcessedImages, processImageFromBlob } from '@/lib/imageProcessor'
+import { ImageCropEditor } from './ImageCropEditor'
 import { cn } from '@/lib/utils'
 
 interface ImageUploadProps {
@@ -26,6 +27,8 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
   const [progress, setProgress] = useState(0)
   const [error, setError] = useState<string>('')
   const [preview, setPreview] = useState<string>('')
+  const [showCropEditor, setShowCropEditor] = useState(false)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault()
@@ -69,7 +72,13 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
     }
 
     setError('')
-    setPreview(URL.createObjectURL(file))
+    setSelectedFile(file)
+    setShowCropEditor(true)
+  }
+
+  const handleCropComplete = async (croppedBlob: Blob) => {
+    setShowCropEditor(false)
+    setPreview(URL.createObjectURL(croppedBlob))
     setUploading(true)
     setProgress(0)
 
@@ -79,8 +88,13 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
         setProgress(prev => Math.min(prev + 10, 90))
       }, 200)
 
-      // Process and upload
-      const urls = await uploadProcessedImages(file, category, itemName)
+      // Create a File object from the blob for processing
+      const croppedFile = new File([croppedBlob], selectedFile?.name || 'image.jpg', {
+        type: croppedBlob.type || 'image/jpeg'
+      })
+
+      // Process and upload the cropped image
+      const urls = await uploadProcessedImages(croppedFile, category, itemName)
       
       clearInterval(progressInterval)
       setProgress(100)
@@ -93,12 +107,18 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
         setPreview('')
         setProgress(0)
         setUploading(false)
+        setSelectedFile(null)
       }, 1000)
     } catch (err: any) {
       setError(err.message || 'Failed to upload image')
       setUploading(false)
       setProgress(0)
     }
+  }
+
+  const handleCancelCrop = () => {
+    setShowCropEditor(false)
+    setSelectedFile(null)
   }
 
   const clearPreview = () => {
@@ -108,6 +128,16 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
 
   return (
     <div className={cn("w-full", className)}>
+      {/* Crop Editor Modal */}
+      {showCropEditor && selectedFile && (
+        <ImageCropEditor
+          imageFile={selectedFile}
+          onCropComplete={handleCropComplete}
+          onCancel={handleCancelCrop}
+          aspectRatio={1} // Always 1:1 square
+        />
+      )}
+
       {preview ? (
         <div className="relative">
           <img

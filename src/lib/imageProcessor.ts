@@ -29,6 +29,14 @@ export async function processImage(file: File): Promise<ProcessedImage> {
   }
 }
 
+export async function processImageFromBlob(blob: Blob): Promise<ProcessedImage> {
+  // Convert blob to File
+  const file = new File([blob], 'image.jpg', { type: blob.type || 'image/jpeg' })
+  
+  // Use existing processImage function
+  return processImage(file)
+}
+
 async function loadImage(file: File): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image()
@@ -44,21 +52,16 @@ async function resizeImage(
   canvas: HTMLCanvasElement,
   ctx: CanvasRenderingContext2D
 ): Promise<Blob> {
-  // Calculate dimensions
-  let width = img.width
-  let height = img.height
+  // For cropped images, they're already square (1:1)
+  // Just resize maintaining the square aspect ratio
+  let size = Math.min(img.width, maxWidth)
   
-  if (width > maxWidth) {
-    height = (maxWidth / width) * height
-    width = maxWidth
-  }
+  // Set canvas dimensions (square)
+  canvas.width = size
+  canvas.height = size
   
-  // Set canvas dimensions
-  canvas.width = width
-  canvas.height = height
-  
-  // Draw resized image
-  ctx.drawImage(img, 0, 0, width, height)
+  // Draw resized image (already square from crop)
+  ctx.drawImage(img, 0, 0, img.width, img.height, 0, 0, size, size)
   
   // Convert to blob with quality optimization
   // Try AVIF first, fall back to WebP, then JPEG
