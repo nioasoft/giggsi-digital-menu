@@ -28,7 +28,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
               {t('restaurant.name')}
             </h1>
             <img
-              src="/src/assets/logo_giggsi.png"
+              src="/logo_giggsi.png"
               alt={t('restaurant.name')}
               className="h-10 w-auto"
             />
