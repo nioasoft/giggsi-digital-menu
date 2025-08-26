@@ -14,10 +14,10 @@ if (!supabaseUrl || !supabaseAnonKey) {
   }
 }
 
-// Don't use placeholder values - require proper configuration
+// Create Supabase client only with valid configuration
 export const supabase = createClient(
-  supabaseUrl || 'https://bsivfdyxjdmosxlbouue.supabase.co', 
-  supabaseAnonKey || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJzaXZmZHl4amRtb3N4bGJvdXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYxMDI0NjUsImV4cCI6MjA3MTY3ODQ2NX0.H152Ot0LOubgH2Mh2RNnfIByKO9CbSQzXfHOHYaFOQE',
+  supabaseUrl || '', 
+  supabaseAnonKey || '',
   {
     auth: {
       autoRefreshToken: true,
