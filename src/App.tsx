@@ -13,6 +13,7 @@ import { AddOnsPage } from '@/pages/admin/AddOnsPage'
 import { ProtectedRoute } from '@/components/admin/ProtectedRoute'
 import MigrateData from '@/pages/MigrateData'
 import FullMigrate from '@/pages/FullMigrate'
+import EnvCheck from '@/pages/EnvCheck'
 import { useTranslation } from 'react-i18next'
 
 function App() {
@@ -107,6 +108,7 @@ function App() {
                 <Route path="/menu" element={<MenuPage />} />
                 <Route path="/migrate" element={<MigrateData />} />
                 <Route path="/fullmigrate" element={<FullMigrate />} />
+                <Route path="/env-check" element={<EnvCheck />} />
                 <Route path="*" element={<Navigate to="/menu" replace />} />
               </Routes>
             </Layout>

@@ -1,19 +1,31 @@
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || ''
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || ''
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn('Missing Supabase environment variables')
+  console.error('Missing Supabase environment variables')
+  console.error('VITE_SUPABASE_URL:', supabaseUrl ? 'Set' : 'Missing')
+  console.error('VITE_SUPABASE_ANON_KEY:', supabaseAnonKey ? 'Set (hidden)' : 'Missing')
+  
+  // Throw error in production to prevent app from running with invalid config
+  if (import.meta.env.PROD) {
+    throw new Error('Supabase configuration is missing. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY environment variables.')
+  }
 }
 
-export const supabase = createClient(supabaseUrl || 'https://placeholder.supabase.co', supabaseAnonKey || 'placeholder-key', {
-  auth: {
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: true
+// Don't use placeholder values - require proper configuration
+export const supabase = createClient(
+  supabaseUrl || 'https://bsivfdyxjdmosxlbouue.supabase.co', 
+  supabaseAnonKey || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJzaXZmZHl4amRtb3N4bGJvdXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYxMDI0NjUsImV4cCI6MjA3MTY3ODQ2NX0.H152Ot0LOubgH2Mh2RNnfIByKO9CbSQzXfHOHYaFOQE',
+  {
+    auth: {
+      autoRefreshToken: true,
+      persistSession: true,
+      detectSessionInUrl: true
+    }
   }
-})
+)
 
 export async function getMenuCategories() {
   const { data, error } = await supabase
