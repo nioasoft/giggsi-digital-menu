@@ -22,7 +22,7 @@ interface Category {
   description_en?: string
   description_ar?: string
   description_ru?: string
-  image?: string
+  image_url?: string
   display_order: number
   is_active: boolean
 }
@@ -129,7 +129,7 @@ export const CategoriesPage: React.FC = () => {
   }
 
   const handleImageUpload = (urls: any) => {
-    setFormData({ ...formData, image: urls.medium })
+    setFormData({ ...formData, image_url: urls.medium })
   }
 
   if (loading) {
@@ -180,9 +180,9 @@ export const CategoriesPage: React.FC = () => {
                 <div className="flex items-center gap-4">
                   <GripVertical className="h-5 w-5 text-muted-foreground cursor-move" />
                   
-                  {category.image && (
+                  {category.image_url && (
                     <img
-                      src={category.image}
+                      src={category.image_url}
                       alt={category.name_he}
                       className="w-16 h-16 object-cover rounded"
                     />
@@ -307,9 +307,9 @@ export const CategoriesPage: React.FC = () => {
                 category="categories"
                 itemName={formData.name_he || 'category'}
               />
-              {formData.image && (
+              {formData.image_url && (
                 <img
-                  src={formData.image}
+                  src={formData.image_url}
                   alt="Current"
                   className="w-32 h-32 object-cover rounded mt-2"
                 />
