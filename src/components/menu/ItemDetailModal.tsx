@@ -162,7 +162,7 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({ item, open, on
         <div className="space-y-6">
           {/* Item Image */}
           {item.image_url && (
-            <div className="relative w-full h-64 rounded-lg overflow-hidden">
+            <div className="relative w-full aspect-square max-w-md mx-auto rounded-lg overflow-hidden bg-muted">
               <img
                 src={item.image_url}
                 alt={localizedContent.name}
