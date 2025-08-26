@@ -19,7 +19,7 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
   onUpload,
   category = 'general',
   itemName = 'item',
-  maxSize = 5,
+  maxSize = 10,
   className
 }) => {
   const [isDragging, setIsDragging] = useState(false)
