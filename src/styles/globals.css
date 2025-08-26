@@ -1,0 +1,182 @@
+@import url('https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Base colors - Dark theme as default for sports bar atmosphere */
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 84% 4.9%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 212.7 26.8% 83.9%;
+
+    /* Giggsi Sports Bar Brand Colors */
+    --giggsi-gold: 45 100% 51%;
+    --giggsi-dark: 220 26% 14%;
+    --giggsi-accent: 210 100% 56%;
+
+    /* Layout */
+    --radius: 0.75rem;
+    --header-height: 4rem;
+    --footer-height: 3rem;
+
+    /* Typography */
+    --font-size-xs: 0.75rem;
+    --font-size-sm: 0.875rem;
+    --font-size-base: 1rem;
+    --font-size-lg: 1.125rem;
+    --font-size-xl: 1.25rem;
+    --font-size-2xl: 1.5rem;
+    --font-size-3xl: 1.875rem;
+    --font-size-4xl: 2.25rem;
+
+    /* Spacing */
+    --spacing-xs: 0.25rem;
+    --spacing-sm: 0.5rem;
+    --spacing-md: 1rem;
+    --spacing-lg: 1.5rem;
+    --spacing-xl: 2rem;
+    --spacing-2xl: 3rem;
+
+    /* Animation */
+    --animation-fast: 150ms;
+    --animation-normal: 250ms;
+    --animation-slow: 350ms;
+
+    /* Mobile-first breakpoints */
+    --breakpoint-sm: 640px;
+    --breakpoint-md: 768px;
+    --breakpoint-lg: 1024px;
+    --breakpoint-xl: 1280px;
+  }
+
+  /* RTL Support */
+  [dir="rtl"] {
+    --rtl-flip: -1;
+  }
+
+  [dir="ltr"] {
+    --rtl-flip: 1;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    font-family: 'Rubik', var(--font-sans), system-ui, sans-serif;
+  }
+
+  /* Mobile-first responsive typography */
+  h1 {
+    @apply text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight;
+  }
+
+  h2 {
+    @apply text-xl sm:text-2xl md:text-3xl font-semibold tracking-tight;
+  }
+
+  h3 {
+    @apply text-lg sm:text-xl md:text-2xl font-semibold;
+  }
+
+  h4 {
+    @apply text-base sm:text-lg md:text-xl font-medium;
+  }
+
+  /* Touch-friendly interactive elements */
+  button, a {
+    @apply min-h-[44px] min-w-[44px];
+  }
+
+  /* Loading states */
+  .loading-pulse {
+    @apply animate-pulse bg-muted;
+  }
+
+  /* Image optimization classes */
+  .img-optimized {
+    @apply object-cover transition-opacity duration-300;
+  }
+
+  .img-loading {
+    @apply opacity-0;
+  }
+
+  .img-loaded {
+    @apply opacity-100;
+  }
+
+  /* Menu-specific styles */
+  .menu-grid {
+    @apply grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4;
+  }
+
+  .menu-item {
+    @apply flex items-start gap-4 p-4 rounded-lg bg-card border transition-colors hover:bg-accent;
+  }
+
+  /* RTL Layout adjustments */
+  [dir="rtl"] .menu-item {
+    @apply flex-row-reverse;
+  }
+  
+  /* CSS Logical Properties - work automatically with RTL/LTR */
+  .text-start {
+    text-align: start;
+  }
+  
+  .text-end {
+    text-align: end;
+  }
+  
+  .justify-start {
+    justify-content: flex-start;
+  }
+  
+  .justify-end {
+    justify-content: flex-end;
+  }
+  
+  .items-start {
+    align-items: flex-start;
+  }
+  
+  .items-end {
+    align-items: flex-end;
+  }
+  
+  .ml-auto-logical {
+    margin-inline-start: auto;
+  }
+  
+  .mr-auto-logical {
+    margin-inline-end: auto;
+  }
+}
+
+/* Print styles for potential receipt functionality */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+}

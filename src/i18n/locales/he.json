@@ -1,0 +1,53 @@
+{
+  "common": {
+    "loading": "טוען...",
+    "error": "משהו השתבש",
+    "retry": "נסה שוב",
+    "close": "סגור",
+    "back": "חזור",
+    "next": "הבא",
+    "menu": "תפריט",
+    "price": "מחיר",
+    "add": "הוסף",
+    "remove": "הסר"
+  },
+  "navigation": {
+    "home": "בית",
+    "menu": "תפריט",
+    "about": "אודות",
+    "contact": "צור קשר"
+  },
+  "menu": {
+    "categories": "קטגוריות התפריט",
+    "items": "פריטי התפריט",
+    "allergens": "אלרגנים",
+    "addOns": "תוספות",
+    "description": "תיאור",
+    "unavailable": "לא זמין כרגע",
+    "selectCategory": "בחר קטגוריה לצפייה בפריטים"
+  },
+  "restaurant": {
+    "name": "ג'יגסי ספורט בר",
+    "welcome": "ברוכים הבאים לג'יגסי ספורט בר",
+    "location": "באר שבע",
+    "phone": "טלפון",
+    "address": "כתובת",
+    "hours": "שעות פתיחה"
+  },
+  "allergens": {
+    "gluten": "מכיל גלוטן",
+    "dairy": "מכיל חלב",
+    "nuts": "מכיל אגוזים",
+    "eggs": "מכיל ביצים",
+    "soy": "מכיל סויה",
+    "fish": "מכיל דגים",
+    "shellfish": "מכיל פירות ים",
+    "sesame": "מכיל שומשום"
+  },
+  "addOns": {
+    "sauces": "רטבים",
+    "sides": "תוספות צד",
+    "toppings": "ציפויים",
+    "extras": "תוספות"
+  }
+}

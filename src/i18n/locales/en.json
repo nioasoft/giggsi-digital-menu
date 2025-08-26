@@ -1,0 +1,53 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "error": "Something went wrong",
+    "retry": "Try Again",
+    "close": "Close",
+    "back": "Back",
+    "next": "Next",
+    "menu": "Menu",
+    "price": "Price",
+    "add": "Add",
+    "remove": "Remove"
+  },
+  "navigation": {
+    "home": "Home",
+    "menu": "Menu",
+    "about": "About",
+    "contact": "Contact"
+  },
+  "menu": {
+    "categories": "Menu Categories",
+    "items": "Menu Items",
+    "allergens": "Allergens",
+    "addOns": "Add-ons",
+    "description": "Description",
+    "unavailable": "Currently unavailable",
+    "selectCategory": "Select a category to view items"
+  },
+  "restaurant": {
+    "name": "Giggsi Sports Bar",
+    "welcome": "Welcome to Giggsi Sports Bar",
+    "location": "Beer Sheva",
+    "phone": "Phone",
+    "address": "Address",
+    "hours": "Opening Hours"
+  },
+  "allergens": {
+    "gluten": "Contains Gluten",
+    "dairy": "Contains Dairy",
+    "nuts": "Contains Nuts",
+    "eggs": "Contains Eggs",
+    "soy": "Contains Soy",
+    "fish": "Contains Fish",
+    "shellfish": "Contains Shellfish",
+    "sesame": "Contains Sesame"
+  },
+  "addOns": {
+    "sauces": "Sauces",
+    "sides": "Sides",
+    "toppings": "Toppings",
+    "extras": "Extras"
+  }
+}

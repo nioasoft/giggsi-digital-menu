@@ -1,0 +1,60 @@
+{
+  "menu": {
+    "categories": "Categories",
+    "allCategories": "All Categories",
+    "backToMenu": "Back to Menu",
+    "selectCategory": "Select a category to view items",
+    "allergens": "Allergens",
+    "addOns": "Add-ons",
+    "price": "Price",
+    "orderNow": "Order Now",
+    "viewDetails": "View Details",
+    "unavailable": "Unavailable",
+    "items": "items",
+    "itemCount": "{{count}} items",
+    "itemCount_0": "No items",
+    "itemCount_1": "1 item",
+    "itemCount_plural": "{{count}} items",
+    "quantity": "Quantity",
+    "total": "Total",
+    "addToCart": "Add to Cart",
+    "nutritionalInfo": "Nutritional Information",
+    "calories": "Calories",
+    "protein": "Protein",
+    "carbs": "Carbohydrates",
+    "fat": "Fat",
+    "addOnCategory": {
+      "extras": "Extras",
+      "toppings": "Toppings",
+      "sauces": "Sauces",
+      "sides": "Sides"
+    }
+  },
+  "allergens": {
+    "gluten": "Gluten",
+    "dairy": "Dairy",
+    "eggs": "Eggs",
+    "nuts": "Nuts",
+    "peanuts": "Peanuts",
+    "soy": "Soy",
+    "fish": "Fish",
+    "shellfish": "Shellfish",
+    "sesame": "Sesame"
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "Error",
+    "tryAgain": "Try Again",
+    "retry": "Retry",
+    "close": "Close",
+    "select": "Select",
+    "cancel": "Cancel",
+    "back": "Back"
+  },
+  "restaurant": {
+    "name": "Giggsi Sports Bar",
+    "welcome": "Welcome to Giggsi Sports Bar",
+    "welcomeOnly": "Welcome",
+    "location": "Location"
+  }
+}
