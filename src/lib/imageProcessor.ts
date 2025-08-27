@@ -16,26 +16,40 @@ export async function processImage(file: File): Promise<ProcessedImage> {
   // Load image
   const img = await loadImage(file)
   
-  // Convert original to WebP if it's not already AVIF/WebP
+  // Convert original to AVIF/WebP if it's not already in modern format
   let original: File | Blob = file
   if (file.type !== 'image/avif' && file.type !== 'image/webp') {
-    // Convert original to WebP for consistency
+    // Convert original to AVIF for best compression
     canvas.width = img.width
     canvas.height = img.height
     ctx.drawImage(img, 0, 0)
     
-    original = await new Promise((resolve, reject) => {
+    original = await new Promise((resolve) => {
+      // Try AVIF first
       canvas.toBlob(
-        (blob) => {
-          if (blob) {
-            console.log(`📁 Original converted to WebP: ${(blob.size / 1024).toFixed(1)}KB (was ${(file.size / 1024).toFixed(1)}KB)`)
-            resolve(blob)
+        (avifBlob) => {
+          if (avifBlob) {
+            console.log(`📁 Original converted to AVIF: ${(avifBlob.size / 1024).toFixed(1)}KB (was ${(file.size / 1024).toFixed(1)}KB)`)
+            resolve(avifBlob)
           } else {
-            resolve(file) // Keep original if conversion fails
+            // Fallback to WebP
+            canvas.toBlob(
+              (webpBlob) => {
+                if (webpBlob) {
+                  console.log(`📁 Original converted to WebP: ${(webpBlob.size / 1024).toFixed(1)}KB (was ${(file.size / 1024).toFixed(1)}KB)`)
+                  resolve(webpBlob)
+                } else {
+                  console.warn('⚠️ Could not convert to modern format, keeping original')
+                  resolve(file)
+                }
+              },
+              'image/webp',
+              0.85 // Higher quality for original
+            )
           }
         },
-        'image/webp',
-        0.8 // Higher quality for original
+        'image/avif',
+        0.75 // Good quality for AVIF original
       )
     })
   }
@@ -87,10 +101,9 @@ async function resizeImage(
   // Draw resized image (already square from crop)
   ctx.drawImage(img, 0, 0, img.width, img.height, 0, 0, size, size)
   
-  // Convert to blob with aggressive quality optimization for fast loading
-  // Only use modern formats (AVIF or WebP) - no JPEG fallback
+  // Convert to blob with AVIF as primary format for best compression
   return new Promise((resolve, reject) => {
-    // Try AVIF format first (best compression - 50-70% smaller than JPEG)
+    // Try AVIF first - best compression (50-70% smaller than JPEG)
     canvas.toBlob(
       (avifBlob) => {
         if (avifBlob) {
@@ -101,20 +114,20 @@ async function resizeImage(
           canvas.toBlob(
             (webpBlob) => {
               if (webpBlob) {
-                console.log(`✅ WebP created: ${maxWidth}px - Size: ${(webpBlob.size / 1024).toFixed(1)}KB`)
+                console.log(`⚠️ WebP fallback: ${maxWidth}px - Size: ${(webpBlob.size / 1024).toFixed(1)}KB`)
                 resolve(webpBlob)
               } else {
-                // No JPEG fallback - WebP is universally supported
-                reject(new Error('Failed to create image - browser does not support modern formats'))
+                // No JPEG fallback - modern formats only
+                reject(new Error('Browser does not support modern image formats (AVIF/WebP)'))
               }
             },
             'image/webp',
-            0.65 // Lower quality for better compression
+            0.8 // Good quality for WebP fallback
           )
         }
       },
       'image/avif',
-      0.6 // Aggressive compression for AVIF - still looks great
+      0.65 // Optimal quality for AVIF (great compression at this level)
     )
   })
 }
@@ -152,7 +165,9 @@ export async function uploadToSupabase(
 export async function uploadProcessedImages(
   file: File,
   category: string,
-  itemName: string
+  itemName: string,
+  categoryEn?: string,  // Optional English category name
+  itemNameEn?: string   // Optional English item name
 ): Promise<{
   original: string
   small: string
@@ -162,25 +177,51 @@ export async function uploadProcessedImages(
   const processed = await processImage(file)
   const timestamp = Date.now()
   
-  // Sanitize path segments to remove Hebrew, Arabic and special characters
-  const sanitizePathSegment = (str: string): string => {
-    return str
+  // Sanitize path segment - prefer English, fallback to transliteration or timestamp
+  const sanitizePathSegment = (enName: string | undefined, heName: string, prefix: string = 'item'): string => {
+    // First try English name
+    if (enName) {
+      const cleaned = enName
+        .replace(/[^\w\s-]/g, '')  // Keep only alphanumeric, spaces, dashes
+        .replace(/\s+/g, '-')       // Replace spaces with dashes
+        .toLowerCase()
+        .trim()
+      
+      if (cleaned && cleaned !== '' && cleaned !== '-') {
+        return cleaned
+      }
+    }
+    
+    // If no English or it's invalid, try to clean Hebrew (will result in empty)
+    const hebrewCleaned = heName
       .replace(/[\u0590-\u05FF]/g, '') // Remove Hebrew characters
       .replace(/[\u0600-\u06FF]/g, '') // Remove Arabic characters
       .replace(/[\u0400-\u04FF]/g, '') // Remove Cyrillic characters
       .replace(/[^\w\s-]/g, '')        // Remove special characters
-      .replace(/\s+/g, '-')             // Replace spaces with dashes
+      .replace(/\s+/g, '-')
       .toLowerCase()
-      .trim() || `item_${Date.now()}`  // Fallback if empty
+      .trim()
+    
+    // If we have something after cleaning Hebrew, use it
+    if (hebrewCleaned && hebrewCleaned !== '' && hebrewCleaned !== '-') {
+      return hebrewCleaned
+    }
+    
+    // Ultimate fallback: use prefix with timestamp
+    return `${prefix}_${Date.now()}`
   }
   
-  const basePath = `${sanitizePathSegment(category)}/${sanitizePathSegment(itemName)}_${timestamp}`
+  // Generate paths using English names when available
+  const categoryPath = sanitizePathSegment(categoryEn, category, 'category')
+  const itemPath = sanitizePathSegment(itemNameEn, itemName, 'item')
+  const basePath = `${categoryPath}/${itemPath}_${timestamp}`
   
-  // Get file extension based on blob type - only modern formats
+  // Get file extension based on blob type - modern formats only
   const getExtension = (blob: Blob | File) => {
     if (blob.type === 'image/avif') return 'avif'
-    // Default to webp extension since it's universally supported
-    return 'webp'
+    if (blob.type === 'image/webp') return 'webp'
+    // Default to avif extension for modern approach
+    return 'avif'
   }
   
   // Upload all sizes
@@ -202,4 +243,34 @@ export function getOptimizedImageUrl(
   if (screenWidth <= 800 && urls.medium) return urls.medium
   if (screenWidth <= 1200 && urls.large) return urls.large
   return urls.original
+}
+
+export async function deleteOldImages(urls: string[]): Promise<void> {
+  if (!urls || urls.length === 0) return
+  
+  // Extract file paths from URLs
+  const paths = urls
+    .filter(url => url && url.includes('menu-images'))
+    .map(url => {
+      // Extract path after 'menu-images/'
+      const parts = url.split('/menu-images/')
+      return parts[1] || null
+    })
+    .filter(path => path !== null) as string[]
+  
+  if (paths.length === 0) return
+  
+  try {
+    const { error } = await supabase.storage
+      .from('menu-images')
+      .remove(paths)
+    
+    if (error) {
+      console.error('Failed to delete old images:', error)
+    } else {
+      console.log(`✅ Deleted ${paths.length} old images:`, paths)
+    }
+  } catch (err) {
+    console.error('Error deleting old images:', err)
+  }
 }

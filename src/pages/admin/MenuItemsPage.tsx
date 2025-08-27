@@ -12,6 +12,7 @@ import { ImageUpload } from '@/components/admin/ImageUpload'
 import { ItemAddonsSection } from '@/components/admin/ItemAddonsSection'
 import { Badge } from '@/components/ui/badge'
 import { supabase } from '@/lib/supabase'
+import { deleteOldImages } from '@/lib/imageProcessor'
 import { ArrowLeft, Plus, Edit, Trash2, Loader2, Search } from 'lucide-react'
 
 interface MenuItem {
@@ -27,6 +28,12 @@ interface MenuItem {
   description_ru?: string
   price: number
   image_url?: string
+  image_urls?: {
+    original: string
+    small: string
+    medium: string
+    large: string
+  }
   allergens?: string[]
   is_available: boolean
   display_order: number
@@ -35,6 +42,7 @@ interface MenuItem {
 interface Category {
   id: string
   name_he: string
+  name_en?: string
 }
 
 const ALLERGENS = [
@@ -123,6 +131,15 @@ export const MenuItemsPage: React.FC = () => {
 
     try {
       if (editingItem) {
+        // Delete old images if new ones were uploaded
+        if (formData.image_urls && editingItem.image_urls) {
+          const oldUrls = Object.values(editingItem.image_urls)
+          await deleteOldImages(oldUrls)
+        } else if (formData.image_url && editingItem.image_url && formData.image_url !== editingItem.image_url) {
+          // Handle legacy single image URL
+          await deleteOldImages([editingItem.image_url])
+        }
+        
         // Update existing
         const { error } = await supabase
           .from('menu_items')
@@ -165,7 +182,11 @@ export const MenuItemsPage: React.FC = () => {
   }
 
   const handleImageUpload = (urls: any) => {
-    setFormData({ ...formData, image_url: urls.medium })
+    setFormData({ 
+      ...formData, 
+      image_url: urls.medium,  // Keep for backward compatibility
+      image_urls: urls  // Store all image sizes
+    })
   }
 
   const toggleAllergen = (allergen: string) => {
@@ -419,7 +440,9 @@ export const MenuItemsPage: React.FC = () => {
               <ImageUpload
                 onUpload={handleImageUpload}
                 category={categories.find(c => c.id === formData.category_id)?.name_he || 'items'}
+                categoryEn={categories.find(c => c.id === formData.category_id)?.name_en || 'items'}
                 itemName={formData.name_he || 'item'}
+                itemNameEn={formData.name_en || formData.name_he || 'item'}
               />
               {formData.image_url && (
                 <img

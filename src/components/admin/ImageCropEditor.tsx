@@ -90,15 +90,15 @@ export const ImageCropEditor: React.FC<ImageCropEditorProps> = ({
       canvas.height
     )
 
-    // Convert canvas to blob
+    // Convert canvas to blob - Force AVIF format for best compression
     canvas.toBlob(
       (blob) => {
         if (blob) {
           onCropComplete(blob)
         }
       },
-      imageFile.type || 'image/jpeg',
-      0.95
+      'image/avif',  // Force AVIF format for maximum compression
+      0.7  // Optimal quality for AVIF (50-80 range)
     )
   }
 

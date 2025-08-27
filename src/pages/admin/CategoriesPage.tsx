@@ -10,6 +10,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { ImageUpload } from '@/components/admin/ImageUpload'
 import { CategoryAddonsModal } from '@/components/admin/CategoryAddonsModal'
 import { supabase } from '@/lib/supabase'
+import { deleteOldImages } from '@/lib/imageProcessor'
 import { ArrowLeft, Plus, Edit, Trash2, Loader2, GripVertical, UtensilsCrossed, Package } from 'lucide-react'
 
 interface Category {
@@ -23,6 +24,12 @@ interface Category {
   description_ar?: string
   description_ru?: string
   image_url?: string
+  image_urls?: {
+    original: string
+    small: string
+    medium: string
+    large: string
+  }
   display_order: number
   is_active: boolean
 }
@@ -87,6 +94,15 @@ export const CategoriesPage: React.FC = () => {
 
     try {
       if (editingCategory) {
+        // Delete old images if new ones were uploaded
+        if (formData.image_urls && editingCategory.image_urls) {
+          const oldUrls = Object.values(editingCategory.image_urls)
+          await deleteOldImages(oldUrls)
+        } else if (formData.image_url && editingCategory.image_url && formData.image_url !== editingCategory.image_url) {
+          // Handle legacy single image URL
+          await deleteOldImages([editingCategory.image_url])
+        }
+        
         // Update existing
         const { error } = await supabase
           .from('categories')
@@ -129,7 +145,11 @@ export const CategoriesPage: React.FC = () => {
   }
 
   const handleImageUpload = (urls: any) => {
-    setFormData({ ...formData, image_url: urls.medium })
+    setFormData({ 
+      ...formData, 
+      image_url: urls.medium,  // Keep for backward compatibility
+      image_urls: urls  // Store all image sizes
+    })
   }
 
   if (loading) {
@@ -305,7 +325,9 @@ export const CategoriesPage: React.FC = () => {
               <ImageUpload
                 onUpload={handleImageUpload}
                 category="categories"
+                categoryEn="categories"
                 itemName={formData.name_he || 'category'}
+                itemNameEn={formData.name_en || formData.name_he || 'category'}
               />
               {formData.image_url && (
                 <img

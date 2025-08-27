@@ -226,7 +226,9 @@ export const SettingsPage: React.FC = () => {
                 <ImageUpload
                   onUpload={handleImageUpload}
                   category="restaurant"
+                  categoryEn="restaurant"
                   itemName="logo"
+                  itemNameEn="logo"
                 />
                 {restaurantInfo.logo_url && (
                   <img

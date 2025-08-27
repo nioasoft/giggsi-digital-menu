@@ -10,7 +10,9 @@ import { cn } from '@/lib/utils'
 interface ImageUploadProps {
   onUpload: (urls: { original: string; small: string; medium: string; large: string }) => void
   category?: string
+  categoryEn?: string  // English category name for better paths
   itemName?: string
+  itemNameEn?: string   // English item name for better paths
   maxSize?: number // in MB
   className?: string
 }
@@ -18,7 +20,9 @@ interface ImageUploadProps {
 export const ImageUpload: React.FC<ImageUploadProps> = ({
   onUpload,
   category = 'general',
+  categoryEn,
   itemName = 'item',
+  itemNameEn,
   maxSize = 10,
   className
 }) => {
@@ -93,8 +97,8 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
         type: croppedBlob.type || 'image/jpeg'
       })
 
-      // Process and upload the cropped image
-      const urls = await uploadProcessedImages(croppedFile, category, itemName)
+      // Process and upload the cropped image with English names for better paths
+      const urls = await uploadProcessedImages(croppedFile, category, itemName, categoryEn, itemNameEn)
       
       clearInterval(progressInterval)
       setProgress(100)

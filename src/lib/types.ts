@@ -1,3 +1,10 @@
+export interface ImageUrls {
+  original: string
+  small: string
+  medium: string
+  large: string
+}
+
 export interface MenuItem {
   id: string
   name: string
@@ -11,7 +18,8 @@ export interface MenuItem {
   description_ar?: string
   description_ru?: string
   price: number
-  image_url?: string
+  image_url?: string  // Keep for backward compatibility
+  image_urls?: ImageUrls  // New field for multiple image sizes
   category_id: string
   allergens: string[]
   add_ons?: AddOn[]
@@ -33,7 +41,8 @@ export interface MenuCategory {
   description_en?: string
   description_ar?: string
   description_ru?: string
-  image_url?: string
+  image_url?: string  // Keep for backward compatibility
+  image_urls?: ImageUrls  // New field for multiple image sizes
   display_order: number
   is_active: boolean
   created_at: string
