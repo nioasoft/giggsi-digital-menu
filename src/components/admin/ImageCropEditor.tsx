@@ -90,15 +90,50 @@ export const ImageCropEditor: React.FC<ImageCropEditorProps> = ({
       canvas.height
     )
 
-    // Convert canvas to blob - Force AVIF format for best compression
+    // Determine quality based on canvas size
+    const canvasPixels = canvas.width * canvas.height
+    const canvasSizeMB = (canvasPixels * 4) / (1024 * 1024) // Approximate uncompressed size
+    
+    let quality = 0.7 // Default quality
+    if (canvasSizeMB > 10) {
+      quality = 0.45 // Very large images need more compression
+    } else if (canvasSizeMB > 5) {
+      quality = 0.55 // Large images
+    } else if (canvasSizeMB > 2) {
+      quality = 0.65 // Medium images
+    }
+    
+    console.log(`🖼️ Cropped image: ${canvas.width}x${canvas.height}, using quality: ${quality}`)
+    
+    // Convert canvas to blob with adaptive quality
     canvas.toBlob(
-      (blob) => {
+      async (blob) => {
         if (blob) {
-          onCropComplete(blob)
+          const sizeKB = blob.size / 1024
+          console.log(`  Initial AVIF size: ${sizeKB.toFixed(0)}KB`)
+          
+          // If still too large, try again with lower quality
+          if (blob.size > 2 * 1024 * 1024 && quality > 0.4) { // If over 2MB
+            console.log(`  Too large, retrying with quality ${quality - 0.2}`)
+            canvas.toBlob(
+              (smallerBlob) => {
+                if (smallerBlob) {
+                  console.log(`  Reduced to: ${(smallerBlob.size / 1024).toFixed(0)}KB`)
+                  onCropComplete(smallerBlob)
+                } else {
+                  onCropComplete(blob) // Use original if re-compression fails
+                }
+              },
+              'image/avif',
+              quality - 0.2
+            )
+          } else {
+            onCropComplete(blob)
+          }
         }
       },
       'image/avif',  // Force AVIF format for maximum compression
-      0.7  // Optimal quality for AVIF (50-80 range)
+      quality  // Adaptive quality based on image size
     )
   }
 
