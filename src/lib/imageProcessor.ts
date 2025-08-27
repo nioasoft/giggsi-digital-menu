@@ -43,10 +43,18 @@ export async function processImage(file: File): Promise<ProcessedImage> {
     file.size
   )
   
-  // Process different sizes with specific targets
-  const small = await resizeImageWithTarget(img, 400, canvas, ctx, 100 * 1024) // 100KB target
-  const medium = await resizeImageWithTarget(img, 800, canvas, ctx, 150 * 1024) // 150KB target
-  const large = await resizeImageWithTarget(img, 1200, canvas, ctx, 300 * 1024) // 300KB target
+  // Process different sizes with adaptive targets based on input efficiency
+  const originalBytesPerPixel = calculateBytesPerPixel(file.size, img.width, img.height)
+  
+  // Calculate adaptive targets for each size
+  const smallAdaptive = getAdaptiveTarget(400, originalBytesPerPixel)
+  const mediumAdaptive = getAdaptiveTarget(800, originalBytesPerPixel)
+  const largeAdaptive = getAdaptiveTarget(1200, originalBytesPerPixel)
+  
+  // Use the smaller of fixed limit or adaptive target
+  const small = await resizeImageWithTarget(img, 400, canvas, ctx, Math.min(100 * 1024, smallAdaptive.targetSize))
+  const medium = await resizeImageWithTarget(img, 800, canvas, ctx, Math.min(200 * 1024, mediumAdaptive.targetSize))
+  const large = await resizeImageWithTarget(img, 1200, canvas, ctx, Math.min(400 * 1024, largeAdaptive.targetSize))
 
   return {
     original: original as File,

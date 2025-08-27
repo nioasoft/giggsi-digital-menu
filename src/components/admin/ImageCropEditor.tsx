@@ -55,18 +55,6 @@ export const ImageCropEditor: React.FC<ImageCropEditorProps> = ({
     setCrop(crop)
   }
 
-  // Helper functions for smart compression
-  function calculateBytesPerPixel(fileSize: number, width: number, height: number): number {
-    return fileSize / (width * height)
-  }
-
-  function getMinimumQuality(fileSizeKB: number): number {
-    if (fileSizeKB < 50) return 0.7   // Small files: preserve quality
-    if (fileSizeKB < 200) return 0.5  // Medium files: balanced
-    if (fileSizeKB < 1000) return 0.4 // Large files: moderate
-    return 0.3                        // Very large: aggressive
-  }
-
   async function generateCroppedImage() {
     const image = imgRef.current
     const canvas = previewCanvasRef.current
@@ -102,116 +90,27 @@ export const ImageCropEditor: React.FC<ImageCropEditorProps> = ({
       canvas.height
     )
 
-    // Calculate compression parameters
-    const inputFileSize = imageFile.size / 1024 // Size in KB
-    const totalPixels = canvas.width * canvas.height
-    const bytesPerPixel = calculateBytesPerPixel(imageFile.size, canvas.width, canvas.height)
-    const minQuality = getMinimumQuality(inputFileSize)
+    // Simply output the cropped image at high quality
+    // The actual compression will be handled by processImage() in the upload flow
+    console.log(`🖼️ Cropping image to ${canvas.width}x${canvas.height}`)
+    console.log(`  Original file: ${(imageFile.size/1024).toFixed(0)}KB`)
+    console.log(`  Outputting at high quality (0.9) for further processing`)
     
-    // Determine starting quality based on input efficiency
-    let quality: number
-    if (bytesPerPixel < 0.3) {
-      quality = 0.85 // Already well-compressed, preserve quality
-    } else if (bytesPerPixel < 0.5) {
-      quality = 0.75 // Moderately compressed
-    } else if (bytesPerPixel < 1.0) {
-      quality = 0.65 // Lightly compressed
-    } else {
-      quality = 0.55 // Uncompressed or inefficient
-    }
-    
-    // Respect minimum quality
-    quality = Math.max(quality, minQuality)
-    
-    console.log(`🖼️ Cropping: ${canvas.width}x${canvas.height}`)
-    console.log(`  Input: ${inputFileSize.toFixed(0)}KB (${bytesPerPixel.toFixed(2)} bytes/pixel)`)
-    console.log(`  Starting quality: ${quality.toFixed(2)}, minimum: ${minQuality.toFixed(2)}`)
-    
-    // Smart compression helper
-    const tryCompression = async (format: string, q: number): Promise<Blob | null> => {
-      return new Promise((resolve) => {
-        canvas.toBlob(
-          (blob) => resolve(blob),
-          format,
-          q
-        )
-      })
-    }
-    
-    // Smart compression with quality preservation
-    const attemptCompression = async () => {
-      let bestBlob: Blob | null = null
-      let bestSize = Infinity
-      const maxAttempts = 5
-      let attempts = 0
-      
-      // If already optimized, try high quality first
-      if (bytesPerPixel < 0.4) {
-        const highQualityAvif = await tryCompression('image/avif', 0.85)
-        if (highQualityAvif && highQualityAvif.size <= imageFile.size * 1.2) {
-          console.log(`  ✨ Preserved quality: AVIF @0.85 = ${(highQualityAvif.size/1024).toFixed(0)}KB`)
-          onCropComplete(highQualityAvif)
-          return
+    // Output cropped image at high quality without compression
+    // Using JPEG format at quality 0.9 to preserve maximum data
+    // The processImage() function will handle smart compression later
+    canvas.toBlob(
+      (blob) => {
+        if (blob) {
+          console.log(`  ✅ Cropped output: ${(blob.size/1024).toFixed(0)}KB (high quality for processing)`)
+          onCropComplete(blob)
+        } else {
+          console.error('Failed to create cropped image blob')
         }
-      }
-      
-      // Progressive quality reduction respecting minimum
-      while (attempts < maxAttempts && quality >= minQuality) {
-        // Try AVIF
-        const avifBlob = await tryCompression('image/avif', quality)
-        if (avifBlob) {
-          const avifBytesPerPixel = avifBlob.size / totalPixels
-          console.log(`  AVIF @${quality.toFixed(2)}: ${(avifBlob.size/1024).toFixed(0)}KB (${avifBytesPerPixel.toFixed(2)} bytes/pixel)`)
-          
-          if (avifBlob.size < bestSize) {
-            bestBlob = avifBlob
-            bestSize = avifBlob.size
-          }
-          
-          // Accept if not significantly larger than input
-          if (avifBlob.size <= imageFile.size * 1.2) {
-            console.log(`  ✅ Accepted AVIF: ${(avifBlob.size/1024).toFixed(0)}KB`)
-            onCropComplete(avifBlob)
-            return
-          }
-        }
-        
-        // Try WebP
-        const webpBlob = await tryCompression('image/webp', quality)
-        if (webpBlob) {
-          const webpBytesPerPixel = webpBlob.size / totalPixels
-          console.log(`  WebP @${quality.toFixed(2)}: ${(webpBlob.size/1024).toFixed(0)}KB (${webpBytesPerPixel.toFixed(2)} bytes/pixel)`)
-          
-          if (webpBlob.size < bestSize) {
-            bestBlob = webpBlob
-            bestSize = webpBlob.size
-          }
-          
-          // Accept if not significantly larger than input
-          if (webpBlob.size <= imageFile.size * 1.2) {
-            console.log(`  ✅ Accepted WebP: ${(webpBlob.size/1024).toFixed(0)}KB`)
-            onCropComplete(webpBlob)
-            return
-          }
-        }
-        
-        // Reduce quality gradually, respecting minimum
-        quality = Math.max(minQuality, quality - 0.1)
-        attempts++
-      }
-      
-      // Use best result found
-      if (bestBlob) {
-        const finalBytesPerPixel = bestBlob.size / totalPixels
-        console.log(`  Final: ${(bestBlob.size/1024).toFixed(0)}KB (${finalBytesPerPixel.toFixed(2)} bytes/pixel)`)
-        if (bestBlob.size > imageFile.size * 1.2) {
-          console.warn(`  ⚠️ Output (${(bestBlob.size/1024).toFixed(0)}KB) larger than input (${inputFileSize.toFixed(0)}KB)`)
-        }
-        onCropComplete(bestBlob)
-      }
-    }
-    
-    attemptCompression()
+      },
+      'image/jpeg',  // Use JPEG for maximum compatibility
+      0.9           // High quality to preserve data for subsequent processing
+    )
   }
 
   return (
