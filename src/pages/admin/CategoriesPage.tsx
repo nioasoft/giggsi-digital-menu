@@ -200,9 +200,9 @@ export const CategoriesPage: React.FC = () => {
                 <div className="flex items-center gap-4">
                   <GripVertical className="h-5 w-5 text-muted-foreground cursor-move" />
                   
-                  {category.image_url && (
+                  {(category.image_urls || category.image_url) && (
                     <img
-                      src={category.image_url}
+                      src={category.image_urls?.small || category.image_url}
                       alt={category.name_he}
                       className="w-16 h-16 object-cover rounded"
                     />
@@ -329,9 +329,9 @@ export const CategoriesPage: React.FC = () => {
                 itemName={formData.name_he || 'category'}
                 itemNameEn={formData.name_en || formData.name_he || 'category'}
               />
-              {formData.image_url && (
+              {(formData.image_urls || formData.image_url) && (
                 <img
-                  src={formData.image_url}
+                  src={formData.image_urls?.small || formData.image_url}
                   alt="Current"
                   className="w-32 h-32 object-cover rounded mt-2"
                 />

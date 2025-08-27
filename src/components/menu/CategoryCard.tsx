@@ -22,9 +22,21 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({
     >
       <CardContent className="p-0">
         <div className="aspect-square relative overflow-hidden rounded-t-lg">
-          {category.image_url ? (
+          {(category.image_urls || category.image_url) ? (
             <img
-              src={category.image_url}
+              src={
+                category.image_urls 
+                  ? (window.innerWidth <= 640 ? category.image_urls.small : 
+                     window.innerWidth <= 1024 ? category.image_urls.medium : 
+                     category.image_urls.large)
+                  : category.image_url
+              }
+              srcSet={
+                category.image_urls 
+                  ? `${category.image_urls.small} 400w, ${category.image_urls.medium} 800w, ${category.image_urls.large} 1200w`
+                  : undefined
+              }
+              sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 300px"
               alt={localizedContent.name}
               className="w-full h-full object-cover transition-opacity duration-300"
               loading="lazy"
