@@ -179,8 +179,15 @@ export async function uploadProcessedImages(
   
   // Sanitize path segment - prefer English, fallback to transliteration or timestamp
   const sanitizePathSegment = (enName: string | undefined, heName: string, prefix: string = 'item'): string => {
-    // First try English name
-    if (enName) {
+    // Check if enName actually contains English characters (not Hebrew/Arabic/Cyrillic)
+    const hasEnglishChars = (str: string | undefined): boolean => {
+      if (!str) return false
+      // Check if string contains Latin alphabet characters
+      return /[a-zA-Z]/.test(str)
+    }
+    
+    // First try English name if it actually contains English
+    if (enName && hasEnglishChars(enName)) {
       const cleaned = enName
         .replace(/[^\w\s-]/g, '')  // Keep only alphanumeric, spaces, dashes
         .replace(/\s+/g, '-')       // Replace spaces with dashes
@@ -192,23 +199,33 @@ export async function uploadProcessedImages(
       }
     }
     
-    // If no English or it's invalid, try to clean Hebrew (will result in empty)
-    const hebrewCleaned = heName
-      .replace(/[\u0590-\u05FF]/g, '') // Remove Hebrew characters
-      .replace(/[\u0600-\u06FF]/g, '') // Remove Arabic characters
-      .replace(/[\u0400-\u04FF]/g, '') // Remove Cyrillic characters
-      .replace(/[^\w\s-]/g, '')        // Remove special characters
-      .replace(/\s+/g, '-')
-      .toLowerCase()
-      .trim()
-    
-    // If we have something after cleaning Hebrew, use it
-    if (hebrewCleaned && hebrewCleaned !== '' && hebrewCleaned !== '-') {
-      return hebrewCleaned
+    // If enName exists but contains non-English (like Hebrew), try extracting any English from heName
+    // Sometimes Hebrew names contain English words mixed in
+    const extractEnglish = (str: string): string => {
+      // Extract only Latin characters and numbers
+      const extracted = str.match(/[a-zA-Z0-9\s-]+/g)
+      if (extracted) {
+        const joined = extracted.join('-')
+          .replace(/\s+/g, '-')
+          .replace(/-+/g, '-')
+          .toLowerCase()
+          .trim()
+        if (joined && joined !== '-') {
+          return joined
+        }
+      }
+      return ''
     }
     
-    // Ultimate fallback: use prefix with timestamp
-    return `${prefix}_${Date.now()}`
+    // Try extracting English from Hebrew name
+    const extractedEnglish = extractEnglish(heName)
+    if (extractedEnglish) {
+      return extractedEnglish
+    }
+    
+    // Ultimate fallback: use prefix with unique ID (not just timestamp to avoid duplicates)
+    const uniqueId = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+    return `${prefix}_${uniqueId}`
   }
   
   // Generate paths using English names when available

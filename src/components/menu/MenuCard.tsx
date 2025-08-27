@@ -72,9 +72,19 @@ export const MenuCard: React.FC<MenuCardProps> = ({ item, onClick }) => {
           </div>
 
           <div className="w-20 h-20 sm:w-24 sm:h-24 flex-shrink-0 order-1">
-            {item.image_url ? (
+            {(item.image_urls || item.image_url) ? (
               <img
-                src={item.image_url}
+                src={
+                  item.image_urls 
+                    ? (window.innerWidth <= 640 ? item.image_urls.small : item.image_urls.medium) 
+                    : item.image_url
+                }
+                srcSet={
+                  item.image_urls 
+                    ? `${item.image_urls.small} 400w, ${item.image_urls.medium} 800w, ${item.image_urls.large} 1200w`
+                    : undefined
+                }
+                sizes="(max-width: 640px) 80px, 96px"
                 alt={localizedContent.name}
                 className="w-full h-full object-cover rounded-md"
                 loading="lazy"

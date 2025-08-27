@@ -161,10 +161,20 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({ item, open, on
 
         <div className="space-y-6">
           {/* Item Image */}
-          {item.image_url && (
+          {(item.image_urls || item.image_url) && (
             <div className="relative w-full aspect-square max-w-md mx-auto rounded-lg overflow-hidden bg-muted">
               <img
-                src={item.image_url}
+                src={
+                  item.image_urls 
+                    ? (window.innerWidth <= 768 ? item.image_urls.medium : item.image_urls.large)
+                    : item.image_url
+                }
+                srcSet={
+                  item.image_urls 
+                    ? `${item.image_urls.small} 400w, ${item.image_urls.medium} 800w, ${item.image_urls.large} 1200w`
+                    : undefined
+                }
+                sizes="(max-width: 768px) 100vw, 800px"
                 alt={localizedContent.name}
                 className="w-full h-full object-cover"
               />

@@ -132,12 +132,29 @@ export const MenuItemsPage: React.FC = () => {
     try {
       if (editingItem) {
         // Delete old images if new ones were uploaded
-        if (formData.image_urls && editingItem.image_urls) {
-          const oldUrls = Object.values(editingItem.image_urls)
-          await deleteOldImages(oldUrls)
-        } else if (formData.image_url && editingItem.image_url && formData.image_url !== editingItem.image_url) {
-          // Handle legacy single image URL
-          await deleteOldImages([editingItem.image_url])
+        const hasNewImages = formData.image_urls && 
+          (!editingItem.image_urls || 
+           JSON.stringify(formData.image_urls) !== JSON.stringify(editingItem.image_urls))
+        
+        if (hasNewImages) {
+          // Collect all old image URLs to delete
+          const oldUrls: string[] = []
+          
+          // Add URLs from image_urls if they exist
+          if (editingItem.image_urls) {
+            oldUrls.push(...Object.values(editingItem.image_urls))
+          }
+          
+          // Also add legacy image_url if it exists and is different
+          if (editingItem.image_url && !oldUrls.includes(editingItem.image_url)) {
+            oldUrls.push(editingItem.image_url)
+          }
+          
+          // Delete all old images
+          if (oldUrls.length > 0) {
+            console.log('Deleting old images:', oldUrls)
+            await deleteOldImages(oldUrls)
+          }
         }
         
         // Update existing
@@ -284,9 +301,9 @@ export const MenuItemsPage: React.FC = () => {
               <Card key={item.id}>
                 <CardContent className="p-4">
                   <div className="flex items-center gap-4">
-                    {item.image_url && (
+                    {(item.image_urls || item.image_url) && (
                       <img
-                        src={item.image_url}
+                        src={item.image_urls?.small || item.image_url}
                         alt={item.name_he}
                         className="w-20 h-20 object-cover rounded"
                       />
@@ -444,9 +461,9 @@ export const MenuItemsPage: React.FC = () => {
                 itemName={formData.name_he || 'item'}
                 itemNameEn={formData.name_en || formData.name_he || 'item'}
               />
-              {formData.image_url && (
+              {(formData.image_urls || formData.image_url) && (
                 <img
-                  src={formData.image_url}
+                  src={formData.image_urls?.small || formData.image_url}
                   alt="Current"
                   className="w-32 h-32 object-cover rounded mt-2"
                 />
