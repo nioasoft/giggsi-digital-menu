@@ -1,6 +1,7 @@
 import React from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { Layout } from '@/components/common/Layout'
+import { Analytics } from '@/components/common/Analytics'
 import { MenuPage } from '@/pages/menu/MenuPage'
 import { LoginPage } from '@/pages/admin/LoginPage'
 import { AdminDashboard } from '@/pages/admin/AdminDashboard'
@@ -29,93 +30,96 @@ function App() {
   }
 
   return (
-    <Router>
-      <Routes>
-        {/* Admin Routes - No Layout */}
-        <Route path="/admin-giggsi-2024/login" element={<LoginPage />} />
-        <Route
-          path="/admin-giggsi-2024"
-          element={
-            <ProtectedRoute>
-              <AdminDashboard />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin-giggsi-2024/categories"
-          element={
-            <ProtectedRoute>
-              <CategoriesPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin-giggsi-2024/items"
-          element={
-            <ProtectedRoute>
-              <MenuItemsPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin-giggsi-2024/items/:categoryId"
-          element={
-            <ProtectedRoute>
-              <MenuItemsPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin-giggsi-2024/promotions"
-          element={
-            <ProtectedRoute>
-              <PromotionsPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin-giggsi-2024/settings"
-          element={
-            <ProtectedRoute>
-              <SettingsPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin-giggsi-2024/addon-groups"
-          element={
-            <ProtectedRoute>
-              <AddOnGroupsPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin-giggsi-2024/addon-groups/:groupId/addons"
-          element={
-            <ProtectedRoute>
-              <AddOnsPage />
-            </ProtectedRoute>
-          }
-        />
-        
-        {/* Public Routes with Layout */}
-        <Route
-          path="*"
-          element={
-            <Layout>
-              <Routes>
-                <Route path="/" element={<Navigate to="/menu" replace />} />
-                <Route path="/menu" element={<MenuPage />} />
-                <Route path="/migrate" element={<MigrateData />} />
-                <Route path="/fullmigrate" element={<FullMigrate />} />
-                <Route path="/env-check" element={<EnvCheck />} />
-                <Route path="*" element={<Navigate to="/menu" replace />} />
-              </Routes>
-            </Layout>
-          }
-        />
-      </Routes>
-    </Router>
+    <>
+      <Router>
+        <Routes>
+          {/* Admin Routes - No Layout */}
+          <Route path="/admin-giggsi-2024/login" element={<LoginPage />} />
+          <Route
+            path="/admin-giggsi-2024"
+            element={
+              <ProtectedRoute>
+                <AdminDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin-giggsi-2024/categories"
+            element={
+              <ProtectedRoute>
+                <CategoriesPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin-giggsi-2024/items"
+            element={
+              <ProtectedRoute>
+                <MenuItemsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin-giggsi-2024/items/:categoryId"
+            element={
+              <ProtectedRoute>
+                <MenuItemsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin-giggsi-2024/promotions"
+            element={
+              <ProtectedRoute>
+                <PromotionsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin-giggsi-2024/settings"
+            element={
+              <ProtectedRoute>
+                <SettingsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin-giggsi-2024/addon-groups"
+            element={
+              <ProtectedRoute>
+                <AddOnGroupsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin-giggsi-2024/addon-groups/:groupId/addons"
+            element={
+              <ProtectedRoute>
+                <AddOnsPage />
+              </ProtectedRoute>
+            }
+          />
+          
+          {/* Public Routes with Layout */}
+          <Route
+            path="*"
+            element={
+              <Layout>
+                <Routes>
+                  <Route path="/" element={<Navigate to="/menu" replace />} />
+                  <Route path="/menu" element={<MenuPage />} />
+                  <Route path="/migrate" element={<MigrateData />} />
+                  <Route path="/fullmigrate" element={<FullMigrate />} />
+                  <Route path="/env-check" element={<EnvCheck />} />
+                  <Route path="*" element={<Navigate to="/menu" replace />} />
+                </Routes>
+              </Layout>
+            }
+          />
+        </Routes>
+      </Router>
+      <Analytics />
+    </>
   )
 }
 
