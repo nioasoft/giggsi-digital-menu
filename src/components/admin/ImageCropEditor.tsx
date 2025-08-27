@@ -55,6 +55,18 @@ export const ImageCropEditor: React.FC<ImageCropEditorProps> = ({
     setCrop(crop)
   }
 
+  // Helper functions for smart compression
+  function calculateBytesPerPixel(fileSize: number, width: number, height: number): number {
+    return fileSize / (width * height)
+  }
+
+  function getMinimumQuality(fileSizeKB: number): number {
+    if (fileSizeKB < 50) return 0.7   // Small files: preserve quality
+    if (fileSizeKB < 200) return 0.5  // Medium files: balanced
+    if (fileSizeKB < 1000) return 0.4 // Large files: moderate
+    return 0.3                        // Very large: aggressive
+  }
+
   async function generateCroppedImage() {
     const image = imgRef.current
     const canvas = previewCanvasRef.current
@@ -90,29 +102,32 @@ export const ImageCropEditor: React.FC<ImageCropEditorProps> = ({
       canvas.height
     )
 
-    // Determine quality based on input file size (if available)
+    // Calculate compression parameters
     const inputFileSize = imageFile.size / 1024 // Size in KB
-    const canvasPixels = canvas.width * canvas.height
-    const canvasSizeMB = (canvasPixels * 4) / (1024 * 1024) // Approximate uncompressed size
+    const totalPixels = canvas.width * canvas.height
+    const bytesPerPixel = calculateBytesPerPixel(imageFile.size, canvas.width, canvas.height)
+    const minQuality = getMinimumQuality(inputFileSize)
     
-    let quality = 0.3 // Start with low quality to prevent size increase
-    
-    // Very aggressive compression to prevent size increase
-    if (inputFileSize < 100) {
-      quality = 0.2 // Very small files need very low quality
-    } else if (inputFileSize < 500) {
-      quality = 0.25 // Small files
-    } else if (canvasSizeMB > 10) {
-      quality = 0.2 // Very large canvas
-    } else if (canvasSizeMB > 5) {
-      quality = 0.25 // Large canvas
+    // Determine starting quality based on input efficiency
+    let quality: number
+    if (bytesPerPixel < 0.3) {
+      quality = 0.85 // Already well-compressed, preserve quality
+    } else if (bytesPerPixel < 0.5) {
+      quality = 0.75 // Moderately compressed
+    } else if (bytesPerPixel < 1.0) {
+      quality = 0.65 // Lightly compressed
     } else {
-      quality = 0.3 // Medium canvas
+      quality = 0.55 // Uncompressed or inefficient
     }
     
-    console.log(`🖼️ Cropping: ${canvas.width}x${canvas.height}, input: ${inputFileSize.toFixed(0)}KB, quality: ${quality}`)
+    // Respect minimum quality
+    quality = Math.max(quality, minQuality)
     
-    // Try AVIF first with aggressive compression
+    console.log(`🖼️ Cropping: ${canvas.width}x${canvas.height}`)
+    console.log(`  Input: ${inputFileSize.toFixed(0)}KB (${bytesPerPixel.toFixed(2)} bytes/pixel)`)
+    console.log(`  Starting quality: ${quality.toFixed(2)}, minimum: ${minQuality.toFixed(2)}`)
+    
+    // Smart compression helper
     const tryCompression = async (format: string, q: number): Promise<Blob | null> => {
       return new Promise((resolve) => {
         canvas.toBlob(
@@ -123,60 +138,76 @@ export const ImageCropEditor: React.FC<ImageCropEditorProps> = ({
       })
     }
     
-    // Try multiple formats and qualities to find smallest
+    // Smart compression with quality preservation
     const attemptCompression = async () => {
       let bestBlob: Blob | null = null
       let bestSize = Infinity
+      const maxAttempts = 5
+      let attempts = 0
       
-      // Try different qualities
-      for (let q = quality; q >= 0.1; q -= 0.1) {
+      // If already optimized, try high quality first
+      if (bytesPerPixel < 0.4) {
+        const highQualityAvif = await tryCompression('image/avif', 0.85)
+        if (highQualityAvif && highQualityAvif.size <= imageFile.size * 1.2) {
+          console.log(`  ✨ Preserved quality: AVIF @0.85 = ${(highQualityAvif.size/1024).toFixed(0)}KB`)
+          onCropComplete(highQualityAvif)
+          return
+        }
+      }
+      
+      // Progressive quality reduction respecting minimum
+      while (attempts < maxAttempts && quality >= minQuality) {
         // Try AVIF
-        const avifBlob = await tryCompression('image/avif', q)
+        const avifBlob = await tryCompression('image/avif', quality)
         if (avifBlob) {
-          console.log(`  AVIF @${q.toFixed(1)}: ${(avifBlob.size/1024).toFixed(0)}KB`)
-          if (avifBlob.size < bestSize && avifBlob.size <= inputFileSize * 2) {
+          const avifBytesPerPixel = avifBlob.size / totalPixels
+          console.log(`  AVIF @${quality.toFixed(2)}: ${(avifBlob.size/1024).toFixed(0)}KB (${avifBytesPerPixel.toFixed(2)} bytes/pixel)`)
+          
+          if (avifBlob.size < bestSize) {
             bestBlob = avifBlob
             bestSize = avifBlob.size
-            // If we're under input size, we're good
-            if (avifBlob.size <= inputFileSize) {
-              break
-            }
+          }
+          
+          // Accept if not significantly larger than input
+          if (avifBlob.size <= imageFile.size * 1.2) {
+            console.log(`  ✅ Accepted AVIF: ${(avifBlob.size/1024).toFixed(0)}KB`)
+            onCropComplete(avifBlob)
+            return
           }
         }
         
         // Try WebP
-        const webpBlob = await tryCompression('image/webp', q)
+        const webpBlob = await tryCompression('image/webp', quality)
         if (webpBlob) {
-          console.log(`  WebP @${q.toFixed(1)}: ${(webpBlob.size/1024).toFixed(0)}KB`)
-          if (webpBlob.size < bestSize && webpBlob.size <= inputFileSize * 2) {
+          const webpBytesPerPixel = webpBlob.size / totalPixels
+          console.log(`  WebP @${quality.toFixed(2)}: ${(webpBlob.size/1024).toFixed(0)}KB (${webpBytesPerPixel.toFixed(2)} bytes/pixel)`)
+          
+          if (webpBlob.size < bestSize) {
             bestBlob = webpBlob
             bestSize = webpBlob.size
-            // If we're under input size, we're good
-            if (webpBlob.size <= inputFileSize) {
-              break
-            }
+          }
+          
+          // Accept if not significantly larger than input
+          if (webpBlob.size <= imageFile.size * 1.2) {
+            console.log(`  ✅ Accepted WebP: ${(webpBlob.size/1024).toFixed(0)}KB`)
+            onCropComplete(webpBlob)
+            return
           }
         }
         
-        // If we found something reasonable, stop
-        if (bestBlob && bestBlob.size <= inputFileSize * 1.2) {
-          break
-        }
+        // Reduce quality gradually, respecting minimum
+        quality = Math.max(minQuality, quality - 0.1)
+        attempts++
       }
       
+      // Use best result found
       if (bestBlob) {
-        console.log(`  ✅ Final: ${(bestBlob.size/1024).toFixed(0)}KB (input was ${inputFileSize.toFixed(0)}KB)`)
-        if (bestBlob.size > inputFileSize * 1.5) {
-          console.warn(`  ⚠️ Output larger than input!`)
+        const finalBytesPerPixel = bestBlob.size / totalPixels
+        console.log(`  Final: ${(bestBlob.size/1024).toFixed(0)}KB (${finalBytesPerPixel.toFixed(2)} bytes/pixel)`)
+        if (bestBlob.size > imageFile.size * 1.2) {
+          console.warn(`  ⚠️ Output (${(bestBlob.size/1024).toFixed(0)}KB) larger than input (${inputFileSize.toFixed(0)}KB)`)
         }
         onCropComplete(bestBlob)
-      } else {
-        // Last resort - try with minimum quality
-        const finalBlob = await tryCompression('image/avif', 0.1) || await tryCompression('image/webp', 0.1)
-        if (finalBlob) {
-          console.log(`  Last resort: ${(finalBlob.size/1024).toFixed(0)}KB`)
-          onCropComplete(finalBlob)
-        }
       }
     }
     

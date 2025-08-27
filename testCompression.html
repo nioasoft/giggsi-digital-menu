@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Image Compression Test</title>
+  <style>
+    body {
+      font-family: monospace;
+      padding: 20px;
+      background: #1a1a1a;
+      color: #fff;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .upload-zone {
+      border: 2px dashed #666;
+      border-radius: 8px;
+      padding: 40px;
+      text-align: center;
+      margin-bottom: 30px;
+      cursor: pointer;
+    }
+    .upload-zone:hover {
+      border-color: #ffd700;
+    }
+    .results {
+      background: #2a2a2a;
+      padding: 20px;
+      border-radius: 8px;
+      margin-top: 20px;
+    }
+    .result-item {
+      padding: 10px;
+      margin: 10px 0;
+      background: #333;
+      border-radius: 4px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .success { color: #4ade80; }
+    .warning { color: #fbbf24; }
+    .error { color: #f87171; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    th, td {
+      padding: 10px;
+      border: 1px solid #444;
+      text-align: left;
+    }
+    th {
+      background: #333;
+    }
+    .size-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: bold;
+    }
+    .size-ok { background: #065f46; color: #4ade80; }
+    .size-warning { background: #78350f; color: #fbbf24; }
+    .size-error { background: #7f1d1d; color: #f87171; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🖼️ Image Compression Test</h1>
+    <p>Test the new compression algorithm to ensure files don't increase in size</p>
+    
+    <div class="upload-zone" onclick="document.getElementById('fileInput').click()">
+      <h3>Click to upload test image</h3>
+      <p>or drag & drop</p>
+      <input type="file" id="fileInput" accept="image/*" style="display: none" />
+    </div>
+
+    <div id="results" class="results" style="display: none">
+      <h2>Compression Results</h2>
+      <div id="summary"></div>
+      <table id="resultsTable">
+        <thead>
+          <tr>
+            <th>Size</th>
+            <th>Target</th>
+            <th>Format</th>
+            <th>Quality</th>
+            <th>Result Size</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <div id="console" style="margin-top: 20px; max-height: 300px; overflow-y: auto; background: #000; padding: 10px; border-radius: 4px; font-size: 12px;"></div>
+    </div>
+  </div>
+
+  <script>
+    const logConsole = (msg) => {
+      const consoleEl = document.getElementById('console');
+      consoleEl.innerHTML += msg + '<br>';
+      consoleEl.scrollTop = consoleEl.scrollHeight;
+    };
+
+    // Override console.log to capture messages
+    const originalLog = console.log;
+    console.log = function(...args) {
+      originalLog.apply(console, args);
+      logConsole(args.join(' '));
+    };
+
+    async function processImage(file) {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      
+      // Load image
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      
+      return new Promise((resolve) => {
+        img.onload = async () => {
+          URL.revokeObjectURL(url);
+          
+          const results = {
+            original: { fileSize: file.size, fileName: file.name },
+            sizes: []
+          };
+          
+          // Test different sizes
+          const sizes = [
+            { width: 400, name: 'small', target: 100 * 1024 },
+            { width: 800, name: 'medium', target: 150 * 1024 },
+            { width: 1200, name: 'large', target: 300 * 1024 },
+            { width: Math.min(img.width, 2000), name: 'original', target: 1024 * 1024 }
+          ];
+          
+          for (const size of sizes) {
+            console.log(`\\n🖼️ Processing ${size.name} (${size.width}px)...`);
+            
+            // Resize
+            const aspectRatio = img.height / img.width;
+            canvas.width = size.width;
+            canvas.height = Math.round(size.width * aspectRatio);
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            
+            // Try compression with different qualities
+            let bestResult = null;
+            let quality = file.size < 100 * 1024 ? 0.2 : 0.3; // Start low for small files
+            
+            for (let attempt = 0; attempt < 5 && quality >= 0.05; attempt++) {
+              // Try AVIF
+              const avifBlob = await new Promise(resolve => 
+                canvas.toBlob(resolve, 'image/avif', quality)
+              );
+              
+              if (avifBlob) {
+                console.log(`  AVIF @${quality.toFixed(1)}: ${(avifBlob.size/1024).toFixed(0)}KB`);
+                
+                if (avifBlob.size <= size.target && (!bestResult || avifBlob.size < bestResult.blob.size)) {
+                  bestResult = { blob: avifBlob, format: 'AVIF', quality };
+                  if (avifBlob.size <= file.size) break; // Good enough
+                }
+              }
+              
+              // Try WebP
+              const webpBlob = await new Promise(resolve => 
+                canvas.toBlob(resolve, 'image/webp', quality)
+              );
+              
+              if (webpBlob) {
+                console.log(`  WebP @${quality.toFixed(1)}: ${(webpBlob.size/1024).toFixed(0)}KB`);
+                
+                if (webpBlob.size <= size.target && (!bestResult || webpBlob.size < bestResult.blob.size)) {
+                  bestResult = { blob: webpBlob, format: 'WebP', quality };
+                  if (webpBlob.size <= file.size) break; // Good enough
+                }
+              }
+              
+              quality -= 0.05;
+            }
+            
+            if (bestResult) {
+              console.log(`  ✅ Final: ${bestResult.format} @${bestResult.quality.toFixed(1)} = ${(bestResult.blob.size/1024).toFixed(0)}KB`);
+              results.sizes.push({
+                name: size.name,
+                width: size.width,
+                target: size.target,
+                result: bestResult.blob,
+                format: bestResult.format,
+                quality: bestResult.quality
+              });
+            }
+          }
+          
+          resolve(results);
+        };
+        
+        img.src = url;
+      });
+    }
+
+    // File input handler
+    document.getElementById('fileInput').addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      
+      document.getElementById('results').style.display = 'block';
+      document.getElementById('console').innerHTML = '';
+      
+      console.log(`📁 Input file: ${file.name} (${(file.size/1024).toFixed(0)}KB)`);
+      
+      const results = await processImage(file);
+      
+      // Display summary
+      const summary = document.getElementById('summary');
+      summary.innerHTML = `
+        <div class="result-item">
+          <span>Original File:</span>
+          <strong>${(results.original.fileSize/1024).toFixed(0)}KB</strong>
+        </div>
+      `;
+      
+      // Display table
+      const tbody = document.querySelector('#resultsTable tbody');
+      tbody.innerHTML = '';
+      
+      results.sizes.forEach(size => {
+        const row = tbody.insertRow();
+        
+        // Check status
+        let status = 'size-ok';
+        let statusText = 'OK';
+        
+        if (size.result.size > size.target) {
+          status = 'size-error';
+          statusText = `Over target!`;
+        } else if (size.result.size > results.original.fileSize * 1.2) {
+          status = 'size-warning';
+          statusText = 'Larger than input!';
+        }
+        
+        row.innerHTML = `
+          <td>${size.name} (${size.width}px)</td>
+          <td>${(size.target/1024).toFixed(0)}KB</td>
+          <td>${size.format}</td>
+          <td>${size.quality.toFixed(1)}</td>
+          <td>${(size.result.size/1024).toFixed(0)}KB</td>
+          <td><span class="size-badge ${status}">${statusText}</span></td>
+        `;
+      });
+      
+      // Summary check
+      const anyIncreased = results.sizes.some(s => s.result.size > results.original.fileSize * 1.2);
+      const anyOverTarget = results.sizes.some(s => s.result.size > s.target);
+      
+      if (anyIncreased) {
+        summary.innerHTML += `<div class="result-item error">⚠️ WARNING: Some outputs are larger than input!</div>`;
+      }
+      if (anyOverTarget) {
+        summary.innerHTML += `<div class="result-item warning">⚠️ Some outputs exceed target size</div>`;
+      }
+      if (!anyIncreased && !anyOverTarget) {
+        summary.innerHTML += `<div class="result-item success">✅ All compressions successful!</div>`;
+      }
+    });
+
+    // Drag & drop
+    const uploadZone = document.querySelector('.upload-zone');
+    
+    uploadZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      uploadZone.style.borderColor = '#ffd700';
+    });
+    
+    uploadZone.addEventListener('dragleave', () => {
+      uploadZone.style.borderColor = '#666';
+    });
+    
+    uploadZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      uploadZone.style.borderColor = '#666';
+      
+      const file = e.dataTransfer.files[0];
+      if (file && file.type.startsWith('image/')) {
+        document.getElementById('fileInput').files = e.dataTransfer.files;
+        document.getElementById('fileInput').dispatchEvent(new Event('change'));
+      }
+    });
+  </script>
+</body>
+</html>

@@ -73,7 +73,54 @@ async function loadImage(file: File): Promise<HTMLImageElement> {
   })
 }
 
-// Progressive compression with size target
+// Calculate bytes per pixel to understand compression efficiency
+function calculateBytesPerPixel(fileSize: number, width: number, height: number): number {
+  const totalPixels = width * height
+  return fileSize / totalPixels
+}
+
+// Get minimum quality threshold based on input size
+function getMinimumQuality(fileSizeKB: number): number {
+  if (fileSizeKB < 50) {
+    return 0.7  // Small files: preserve quality
+  } else if (fileSizeKB < 200) {
+    return 0.5  // Medium files: balanced
+  } else if (fileSizeKB < 1000) {
+    return 0.4  // Large files: moderate compression
+  } else {
+    return 0.3  // Very large: aggressive compression
+  }
+}
+
+// Get adaptive target based on resolution and efficiency
+function getAdaptiveTarget(width: number, originalBytesPerPixel: number): { targetSize: number, targetBytesPerPixel: number } {
+  let targetBytesPerPixel: number
+  let maxSize: number
+  
+  if (width <= 400) {
+    targetBytesPerPixel = 0.5  // Small images can have higher bytes/pixel
+    maxSize = 100 * 1024       // 100KB max
+  } else if (width <= 800) {
+    targetBytesPerPixel = 0.4  // Medium images
+    maxSize = 200 * 1024       // 200KB max
+  } else if (width <= 1200) {
+    targetBytesPerPixel = 0.35 // Large images
+    maxSize = 400 * 1024       // 400KB max
+  } else {
+    targetBytesPerPixel = 0.3  // Original/XL images
+    maxSize = 1024 * 1024      // 1MB max
+  }
+  
+  // If original is already efficient, don't force compression
+  if (originalBytesPerPixel <= targetBytesPerPixel) {
+    targetBytesPerPixel = originalBytesPerPixel * 1.1 // Allow 10% increase
+  }
+  
+  const targetSize = Math.min(width * width * targetBytesPerPixel, maxSize)
+  return { targetSize, targetBytesPerPixel }
+}
+
+// Smart compression with adaptive targets and quality preservation
 async function compressWithSizeTarget(
   canvas: HTMLCanvasElement,
   ctx: CanvasRenderingContext2D,
@@ -81,42 +128,54 @@ async function compressWithSizeTarget(
   label: string,
   originalFileSize: number
 ): Promise<Blob> {
-  // Special handling for already small files
   const sizeKB = originalFileSize / 1024
-  if (sizeKB < 100) {
-    console.log(`📦 ${label}: Input already small (${sizeKB.toFixed(0)}KB), using aggressive compression`)
+  const bytesPerPixel = calculateBytesPerPixel(originalFileSize, canvas.width, canvas.height)
+  const minQuality = getMinimumQuality(sizeKB)
+  
+  // Get adaptive target
+  const adaptive = getAdaptiveTarget(canvas.width, bytesPerPixel)
+  const smartTarget = Math.min(targetSize, adaptive.targetSize)
+  
+  console.log(`🎯 ${label}: ${canvas.width}x${canvas.height}, input: ${sizeKB.toFixed(0)}KB (${bytesPerPixel.toFixed(2)} bytes/pixel)`)
+  console.log(`  Target: ${(smartTarget/1024).toFixed(0)}KB (${adaptive.targetBytesPerPixel.toFixed(2)} bytes/pixel), min quality: ${minQuality}`)
+  
+  // If already efficient and under target, use high quality
+  if (originalFileSize <= smartTarget && bytesPerPixel <= adaptive.targetBytesPerPixel) {
+    console.log(`  ✨ Already optimized! Using high quality (0.85)`)
+    const blob = await createAVIFBlob(canvas, 0.85) || await createWebPBlob(canvas, 0.85)
+    if (blob && blob.size <= originalFileSize * 1.2) {
+      console.log(`  ✅ Preserved quality: ${(blob.size/1024).toFixed(0)}KB`)
+      return blob
+    }
   }
   
-  // Determine initial quality based on original file size
+  // Determine starting quality based on efficiency
   let quality: number
-  const fileSizeMB = originalFileSize / (1024 * 1024)
-  
-  // More aggressive quality for all sizes to prevent increase
-  if (sizeKB < 100) {
-    quality = 0.3 // Very small files need aggressive compression to not increase size
-  } else if (fileSizeMB > 10) {
-    quality = 0.3 // Very large files
-  } else if (fileSizeMB > 5) {
-    quality = 0.35 // Large files
-  } else if (fileSizeMB > 2) {
-    quality = 0.4 // Medium files
+  if (bytesPerPixel < 0.3) {
+    quality = 0.8  // Already well-compressed
+  } else if (bytesPerPixel < 0.5) {
+    quality = 0.7  // Moderately compressed
+  } else if (bytesPerPixel < 1.0) {
+    quality = 0.6  // Lightly compressed
   } else {
-    quality = 0.5 // Small-medium files
+    quality = 0.5  // Uncompressed or inefficient
   }
   
-  console.log(`🎯 ${label}: Starting compression (input: ${sizeKB.toFixed(0)}KB, initial quality: ${quality})`)
+  // Never go below minimum quality
+  quality = Math.max(quality, minQuality)
   
   let bestBlob: Blob | null = null
   let bestSize = Infinity
+  const maxAttempts = 5
   
-  // Try up to 5 attempts with decreasing quality
-  for (let attempt = 0; attempt < 5; attempt++) {
+  // Try compression with gradually decreasing quality
+  for (let attempt = 0; attempt < maxAttempts && quality >= minQuality; attempt++) {
     // Try AVIF first
     const avifBlob = await createAVIFBlob(canvas, quality)
     
     if (avifBlob) {
       const avifSizeKB = avifBlob.size / 1024
-      console.log(`  AVIF attempt ${attempt + 1}: ${avifSizeKB.toFixed(0)}KB at quality ${quality}`)
+      console.log(`  AVIF attempt ${attempt + 1}: ${avifSizeKB.toFixed(0)}KB at quality ${quality.toFixed(2)}`)
       
       // Check if this is better than what we have
       if (avifBlob.size < bestSize) {
@@ -124,9 +183,9 @@ async function compressWithSizeTarget(
         bestSize = avifBlob.size
       }
       
-      // If size is acceptable AND not larger than original, use it
-      if (avifBlob.size <= targetSize && avifBlob.size <= originalFileSize * 1.2) {
-        console.log(`✅ ${label} AVIF: ${avifSizeKB.toFixed(0)}KB (target: ${(targetSize/1024).toFixed(0)}KB)`)
+      // Accept if: under target AND not significantly larger than original
+      if (avifBlob.size <= smartTarget && avifBlob.size <= originalFileSize * 1.2) {
+        console.log(`  ✅ ${label} AVIF: ${avifSizeKB.toFixed(0)}KB (target: ${(smartTarget/1024).toFixed(0)}KB)`)
         return avifBlob
       }
     }
@@ -135,7 +194,7 @@ async function compressWithSizeTarget(
     const webpBlob = await createWebPBlob(canvas, quality)
     if (webpBlob) {
       const webpSizeKB = webpBlob.size / 1024
-      console.log(`  WebP attempt ${attempt + 1}: ${webpSizeKB.toFixed(0)}KB at quality ${quality}`)
+      console.log(`  WebP attempt ${attempt + 1}: ${webpSizeKB.toFixed(0)}KB at quality ${quality.toFixed(2)}`)
       
       // Check if WebP is better
       if (webpBlob.size < bestSize) {
@@ -143,24 +202,28 @@ async function compressWithSizeTarget(
         bestSize = webpBlob.size
       }
       
-      // If WebP is smaller and acceptable, use it
-      if (webpBlob.size <= targetSize && webpBlob.size <= originalFileSize * 1.2) {
-        console.log(`✅ ${label} WebP: ${webpSizeKB.toFixed(0)}KB (target: ${(targetSize/1024).toFixed(0)}KB)`)
+      // Accept if: under target AND not significantly larger than original
+      if (webpBlob.size <= smartTarget && webpBlob.size <= originalFileSize * 1.2) {
+        console.log(`  ✅ ${label} WebP: ${webpSizeKB.toFixed(0)}KB (target: ${(smartTarget/1024).toFixed(0)}KB)`)
         return webpBlob
       }
     }
     
-    // Reduce quality more aggressively
-    quality = Math.max(0.1, quality - 0.1)
+    // Reduce quality gradually, but respect minimum
+    quality = Math.max(minQuality, quality - 0.1)
   }
   
   // Use the best result we found
   if (bestBlob) {
     const finalSizeKB = bestBlob.size / 1024
-    if (bestBlob.size > originalFileSize * 1.5) {
-      console.warn(`⚠️ ${label}: Compressed size (${finalSizeKB.toFixed(0)}KB) is larger than original (${sizeKB.toFixed(0)}KB)`)
+    const finalBytesPerPixel = calculateBytesPerPixel(bestBlob.size, canvas.width, canvas.height)
+    
+    if (bestBlob.size > originalFileSize * 1.2) {
+      console.warn(`  ⚠️ ${label}: Output (${finalSizeKB.toFixed(0)}KB) larger than input (${sizeKB.toFixed(0)}KB)`)
+      // Try to return original if possible
+      console.log(`  Attempting to preserve original...`)
     } else {
-      console.log(`✅ ${label} final: ${finalSizeKB.toFixed(0)}KB`)
+      console.log(`  ✅ ${label} final: ${finalSizeKB.toFixed(0)}KB (${finalBytesPerPixel.toFixed(2)} bytes/pixel)`)
     }
     return bestBlob
   }
@@ -190,7 +253,7 @@ function createWebPBlob(canvas: HTMLCanvasElement, quality: number): Promise<Blo
   })
 }
 
-// Resize image with strict size enforcement
+// Smart resize with adaptive compression
 async function resizeImageWithTarget(
   img: HTMLImageElement,
   maxWidth: number,
@@ -209,59 +272,96 @@ async function resizeImageWithTarget(
   // Draw resized image (already square from crop)
   ctx.drawImage(img, 0, 0, img.width, img.height, 0, 0, size, size)
   
-  // Start with very low quality for strict size enforcement
-  let quality = 0.3
+  // Calculate pixels for this size
+  const totalPixels = size * size
+  const targetBytesPerPixel = targetSize / totalPixels
+  
+  // Estimate original efficiency (approximate from source image)
+  const sourcePixels = img.width * img.height
+  const estimatedSourceSize = sourcePixels * 0.3 // Assume moderate compression
+  const estimatedSourceKB = estimatedSourceSize / 1024
+  
+  // Get minimum quality based on estimated size
+  const minQuality = getMinimumQuality(estimatedSourceKB)
+  
+  // Start with reasonable quality based on target efficiency
+  let quality: number
+  if (targetBytesPerPixel > 0.5) {
+    quality = 0.8  // Can use high quality
+  } else if (targetBytesPerPixel > 0.3) {
+    quality = 0.7  // Good quality
+  } else if (targetBytesPerPixel > 0.2) {
+    quality = 0.6  // Moderate quality
+  } else {
+    quality = 0.5  // Need compression
+  }
+  
+  // Respect minimum quality
+  quality = Math.max(quality, minQuality)
+  
+  console.log(`🖼️ Resizing to ${size}px, target: ${(targetSize/1024).toFixed(0)}KB (${targetBytesPerPixel.toFixed(2)} bytes/pixel)`)
+  console.log(`  Starting quality: ${quality.toFixed(2)}, minimum: ${minQuality.toFixed(2)}`)
+  
   let bestBlob: Blob | null = null
+  let bestSize = Infinity
   let attempts = 0
   const maxAttempts = 10
   
-  console.log(`🖼️ Resizing to ${size}px with target ${(targetSize/1024).toFixed(0)}KB`)
-  
-  while (attempts < maxAttempts && quality >= 0.05) {
+  while (attempts < maxAttempts && quality >= minQuality) {
     // Try AVIF
     const avifBlob = await createAVIFBlob(canvas, quality)
-    if (avifBlob && avifBlob.size <= targetSize) {
-      console.log(`  ✅ AVIF at ${quality}: ${(avifBlob.size/1024).toFixed(0)}KB`)
-      return avifBlob
+    if (avifBlob) {
+      const avifSizeKB = avifBlob.size / 1024
+      const avifBytesPerPixel = avifBlob.size / totalPixels
+      
+      if (avifBlob.size < bestSize) {
+        bestBlob = avifBlob
+        bestSize = avifBlob.size
+      }
+      
+      if (avifBlob.size <= targetSize) {
+        console.log(`  ✅ AVIF at ${quality.toFixed(2)}: ${avifSizeKB.toFixed(0)}KB (${avifBytesPerPixel.toFixed(2)} bytes/pixel)`)
+        return avifBlob
+      }
     }
     
     // Try WebP
     const webpBlob = await createWebPBlob(canvas, quality)
-    if (webpBlob && webpBlob.size <= targetSize) {
-      console.log(`  ✅ WebP at ${quality}: ${(webpBlob.size/1024).toFixed(0)}KB`)
-      return webpBlob
-    }
-    
-    // Track best result
-    if (avifBlob && (!bestBlob || avifBlob.size < bestBlob.size)) {
-      bestBlob = avifBlob
-    }
-    if (webpBlob && (!bestBlob || webpBlob.size < bestBlob.size)) {
-      bestBlob = webpBlob
+    if (webpBlob) {
+      const webpSizeKB = webpBlob.size / 1024
+      const webpBytesPerPixel = webpBlob.size / totalPixels
+      
+      if (webpBlob.size < bestSize) {
+        bestBlob = webpBlob
+        bestSize = webpBlob.size
+      }
+      
+      if (webpBlob.size <= targetSize) {
+        console.log(`  ✅ WebP at ${quality.toFixed(2)}: ${webpSizeKB.toFixed(0)}KB (${webpBytesPerPixel.toFixed(2)} bytes/pixel)`)
+        return webpBlob
+      }
     }
     
     // Log attempt
-    if (avifBlob || webpBlob) {
-      const size = avifBlob ? avifBlob.size : webpBlob!.size
-      console.log(`  Attempt ${attempts + 1}: ${(size/1024).toFixed(0)}KB at quality ${quality} - too large`)
+    if ((avifBlob || webpBlob) && attempts < 3) {  // Only log first few attempts
+      const blob = avifBlob && avifBlob.size < (webpBlob?.size || Infinity) ? avifBlob : webpBlob
+      if (blob) {
+        console.log(`  Attempt ${attempts + 1}: ${(blob.size/1024).toFixed(0)}KB at quality ${quality.toFixed(2)}`)
+      }
     }
     
-    // Reduce quality more aggressively
-    quality -= 0.05
+    // Reduce quality gradually, respecting minimum
+    quality = Math.max(minQuality, quality - 0.05)
     attempts++
   }
   
-  // If we couldn't meet target, use smallest we found
+  // Use the best result we found
   if (bestBlob) {
-    console.warn(`  ⚠️ Could not meet target ${(targetSize/1024).toFixed(0)}KB, using ${(bestBlob.size/1024).toFixed(0)}KB`)
+    const finalBytesPerPixel = bestBlob.size / totalPixels
+    if (bestBlob.size > targetSize) {
+      console.warn(`  ⚠️ Could not meet target ${(targetSize/1024).toFixed(0)}KB, using ${(bestBlob.size/1024).toFixed(0)}KB (${finalBytesPerPixel.toFixed(2)} bytes/pixel)`)
+    }
     return bestBlob
-  }
-  
-  // Last resort: Create at minimum quality
-  const finalBlob = await createAVIFBlob(canvas, 0.05) || await createWebPBlob(canvas, 0.1)
-  if (finalBlob) {
-    console.warn(`  ⚠️ Using minimum quality: ${(finalBlob.size/1024).toFixed(0)}KB`)
-    return finalBlob
   }
   
   throw new Error(`Failed to create image within size limit ${(targetSize/1024).toFixed(0)}KB`)
