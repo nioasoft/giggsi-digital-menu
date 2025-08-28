@@ -9,7 +9,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { supabase } from '@/lib/supabase'
-import { ArrowLeft, Plus, Edit, Trash2, Loader2, Settings } from 'lucide-react'
+import { useDragSort } from '@/hooks/useDragSort'
+import { ArrowLeft, Plus, Edit, Trash2, Loader2, Settings, GripVertical } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import type { AddOnGroup } from '@/lib/types'
 
@@ -23,6 +24,13 @@ export const AddOnGroupsPage: React.FC = () => {
   const [formData, setFormData] = useState<Partial<AddOnGroup>>({})
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+
+  // Drag and drop functionality
+  const { dragHandlers, isDragging } = useDragSort({
+    items: groups,
+    onReorder: setGroups,
+    tableName: 'addon_groups'
+  })
 
   useEffect(() => {
     loadGroups()
@@ -153,25 +161,28 @@ export const AddOnGroupsPage: React.FC = () => {
         )}
 
         <div className="grid gap-4">
-          {groups.map((group) => (
-            <Card key={group.id}>
+          {groups.map((group, index) => (
+            <Card key={group.id} {...dragHandlers(index)}>
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <h3 className="font-semibold">{group.name_he}</h3>
-                      {!group.is_active && (
-                        <Badge variant="secondary">לא פעיל</Badge>
+                  <div className="flex items-center gap-3 flex-1">
+                    <GripVertical className="h-5 w-5 text-muted-foreground cursor-move" />
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <h3 className="font-semibold">{group.name_he}</h3>
+                        {!group.is_active && (
+                          <Badge variant="secondary">לא פעיל</Badge>
+                        )}
+                      </div>
+                      {group.description_he && (
+                        <p className="text-sm text-muted-foreground mb-2">
+                          {group.description_he}
+                        </p>
                       )}
-                    </div>
-                    {group.description_he && (
-                      <p className="text-sm text-muted-foreground mb-2">
-                        {group.description_he}
+                      <p className="text-xs text-muted-foreground">
+                        סדר תצוגה: {group.display_order}
                       </p>
-                    )}
-                    <p className="text-xs text-muted-foreground">
-                      סדר תצוגה: {group.display_order}
-                    </p>
+                    </div>
                   </div>
                   
                   <div className="flex items-center gap-2">

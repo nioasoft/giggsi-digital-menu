@@ -31,7 +31,10 @@ function App() {
 
   return (
     <>
-      <Router>
+      <Router future={{
+        v7_startTransition: true,
+        v7_relativeSplatPath: true
+      }}>
         <Routes>
           {/* Admin Routes - No Layout */}
           <Route path="/admin-giggsi-2024/login" element={<LoginPage />} />

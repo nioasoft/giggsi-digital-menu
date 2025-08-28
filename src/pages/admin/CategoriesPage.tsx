@@ -11,6 +11,7 @@ import { ImageUpload } from '@/components/admin/ImageUpload'
 import { CategoryAddonsModal } from '@/components/admin/CategoryAddonsModal'
 import { supabase } from '@/lib/supabase'
 import { deleteOldImages } from '@/lib/imageProcessor'
+import { useDragSort } from '@/hooks/useDragSort'
 import { ArrowLeft, Plus, Edit, Trash2, Loader2, GripVertical, UtensilsCrossed, Package } from 'lucide-react'
 
 interface Category {
@@ -45,6 +46,13 @@ export const CategoriesPage: React.FC = () => {
   const [error, setError] = useState('')
   const [addonsModalOpen, setAddonsModalOpen] = useState(false)
   const [selectedCategoryForAddons, setSelectedCategoryForAddons] = useState<Category | null>(null)
+
+  // Drag and drop functionality
+  const { dragHandlers, isDragging } = useDragSort({
+    items: categories,
+    onReorder: setCategories,
+    tableName: 'categories'
+  })
 
   useEffect(() => {
     loadCategories()
@@ -194,8 +202,8 @@ export const CategoriesPage: React.FC = () => {
         )}
 
         <div className="grid gap-4">
-          {categories.map((category) => (
-            <Card key={category.id}>
+          {categories.map((category, index) => (
+            <Card key={category.id} {...dragHandlers(index)}>
               <CardContent className="p-4">
                 <div className="flex items-center gap-4">
                   <GripVertical className="h-5 w-5 text-muted-foreground cursor-move" />

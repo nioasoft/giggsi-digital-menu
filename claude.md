@@ -1,299 +1,146 @@
-# Giggsi Restaurant Menu System - Claude Code Rules
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Project Overview
-Building a mobile-first digital menu system for Giggsi Sports Bar Restaurant in Beer Sheva. The system displays menu items with categories, allergen information, add-ons, and admin management capabilities.
+Mobile-first digital menu system for Giggsi Sports Bar Restaurant in Beer Sheva. Features multilingual support, real-time updates, and comprehensive admin management.
 
-**Business Context:** Modern sports bar with dynamic atmosphere, requires fast-loading mobile menu for 99% mobile users.
+**Tech Stack:** React 18 + TypeScript + Vite + Supabase + shadcn/ui + Tailwind CSS
+**Key Focus:** 99% mobile traffic, sub-2s load times, RTL support
+**Documentation:** See `PRD.md` for complete product requirements and business context
 
-**📋 For Complete Requirements:** See `PRD.md` for detailed product requirements, business context, user personas, and project phases.
+## Development Commands
 
-**Project Directory:** DIGITALMENU
-
-## Project Assets Available
-- **logo_giggsi.png** - Official Giggsi Sports Bar logo for branding
-- **giggsi_menu.json** - Complete menu data structure with categories, items, prices, and descriptions
-
-## Sub Agents Usage
-
-### Available Sub Agents
-Use the following specialized agents for different development tasks:
-
-- **react-frontend-developer** - React 19 specialist, mobile-first UI, shadcn/ui components
-- **i18n-specialist** - Internationalization expert for 4-language support + RTL
-- **supabase-developer** - Database design, RLS policies, performance optimization  
-- **image-optimizer** - AVIF conversion, responsive images, performance
-- **code-reviewer** - Quality assurance, security, best practices
-
-### Agent Usage Examples
 ```bash
-# Use specific agents for tasks
-claude "use react-frontend-developer to create the menu category grid component"
-claude "use i18n-specialist to set up Hebrew RTL support"  
-claude "use supabase-developer to create restaurant menu schema"
-claude "use image-optimizer to implement AVIF conversion"
-claude "use code-reviewer to check security of admin panel"
+npm run dev          # Start dev server at http://localhost:3000
+npm run build        # Production build with code splitting
+npm run preview      # Preview production build
+npm run lint         # ESLint check (max-warnings 0)
+npm run type-check   # TypeScript type checking
+npm run deploy       # Deploy to Vercel (uses scripts/deploy-vercel.sh)
+npm run deploy:preview # Deploy preview to Vercel
+npm run deploy:prod  # Deploy production to Vercel
 ```
 
-## MCP Servers Available
-The following MCP servers are configured and ready:
-- ✅ **Supabase MCP** - Full database access
-- ✅ **Filesystem MCP** - Project files access  
-- ✅ **Puppeteer MCP** - Browser automation for testing
-- ✅ **Sequential Thinking MCP** - Complex problem solving
+## High-Level Architecture
 
-## Core Architecture Rules
+### Core System Design
+- **Frontend:** React 18 SPA with client-side routing (react-router-dom)
+- **State Management:** React hooks + Context API (no Redux/Zustand)
+- **Backend:** Supabase (PostgreSQL + Auth + Storage + Realtime)
+- **Styling:** Tailwind CSS + shadcn/ui components + CSS variables
+- **i18n:** react-i18next with 4 languages (Hebrew/Arabic RTL, Russian/English LTR)
+- **Build:** Vite with manual chunking for optimal performance
+- **Image Processing:** Custom AVIF conversion with responsive variants
 
-### MUST Rules (Enforced)
-- **React 19 + TypeScript** - Latest React with strict TypeScript
-- **Supabase Backend** - Database, Auth, Storage for all data
-- **shadcn/ui Components** - UI component library only
-- **Mobile First Design** - 99% traffic is mobile, responsive secondary
-- **AVIF Image Optimization** - Convert all uploads to AVIF with multiple sizes
-- **Performance First** - Sub-2s load times mandatory
-- **Security** - Admin access via separate URL, no admin links in menu
-- **Clean Architecture** - Clear separation of concerns
-
-### SHOULD Rules (Strongly Recommended)
-- **Zero External Dependencies** - Minimize package installations
-- **Short Function Names** - `loadMenu()` not `loadMenuFromDatabase()`
-- **Clear File Structure** - Intuitive folder organization
-- **Consistent Naming** - camelCase for variables, PascalCase for components
-- **Single Responsibility** - Each component/function does one thing
+### Key Architectural Patterns
+- **Component Organization:** Separation by domain (menu/, admin/, common/, ui/)
+- **Data Flow:** Supabase → Custom hooks → Components
+- **Auth:** Supabase Auth with protected routes for admin (/admin-giggsi-2024)
+- **Image Strategy:** AVIF primary with WebP/JPEG fallbacks, lazy loading
+- **Error Handling:** Try-catch blocks with user-friendly error messages
+- **Type Safety:** Strict TypeScript with generated Supabase types
 
 ## Project Structure
 
 ```
 src/
 ├── components/
-│   ├── ui/           # shadcn components
-│   ├── menu/         # Menu display components
-│   ├── admin/        # Admin panel components
-│   └── common/       # Shared components
-├── lib/
-│   ├── supabase.ts   # Supabase client
-│   ├── utils.ts      # Utility functions
-│   └── types.ts      # TypeScript definitions
-├── styles/
-│   ├── globals.css   # CSS variables for theming
-│   └── components/   # Component-specific styles
+│   ├── ui/           # shadcn/ui components (button, card, dialog, etc.)
+│   ├── menu/         # Menu display components (CategoryCard, MenuCard, ItemDetailModal)
+│   ├── admin/        # Admin components (ImageUpload, ProtectedRoute, CategoryAddonsModal)
+│   ├── common/       # Shared components (Layout, LanguageSwitcher, Analytics)
+│   └── promotions/   # Popup and promotion components
 ├── pages/
-│   ├── menu/         # Public menu pages
-│   └── admin/        # Admin pages (separate route)
-└── hooks/            # Custom React hooks
+│   ├── menu/         # Public menu page
+│   └── admin/        # Admin pages (Dashboard, Categories, MenuItems, etc.)
+├── lib/
+│   ├── supabase.ts   # Supabase client configuration
+│   ├── auth.ts       # Authentication utilities
+│   ├── imageProcessor.ts # AVIF conversion and image optimization
+│   ├── types.ts      # TypeScript type definitions
+│   └── utils.ts      # Utility functions (cn, formatters)
+├── hooks/
+│   └── useMenu.ts    # Custom hook for menu data fetching
+├── i18n/
+│   ├── index.ts      # i18n configuration
+│   └── locales/      # Translation JSON files (ar, en, he, ru)
+├── styles/
+│   └── globals.css   # Tailwind directives + CSS variables
+└── assets/           # Static assets (logo, menu JSON)
 ```
 
-## Database Schema Requirements
+## Database Schema
 
-### Core Tables
-- **categories** - Menu categories with images and order
-- **menu_items** - Individual dishes with allergens and descriptions  
-- **add_ons** - Toppings and extras (up to 2 types per item)
-- **restaurant_info** - Logo, hours, contact details
-- **popups** - Site-wide, category-specific, and banner popups
-- **users** - Admin authentication
+### Supabase Tables
+- **categories** - Menu categories (id, name_*, description_*, image_url, display_order, is_active)
+- **menu_items** - Items (id, category_id, name_*, description_*, price, image_url, allergens, is_active)
+- **addon_groups** - Add-on groups (id, name_*, type, category_ids[], is_active)
+- **addon_items** - Individual add-ons (id, group_id, name_*, price, is_active)
+- **menu_item_addon_groups** - M2M relationship for items and addon groups
+- **restaurant_info** - Restaurant details (hours, contact, social links)
+- **popups** - Promotional popups (id, type, content_*, image_url, is_active)
 
-### Image Storage
-- **Supabase Storage** - Organized by category folders
-- **AVIF Conversion** - Automatic conversion with small/large variants
-- **Lazy Loading** - Images load only when needed
+*Note: _* suffix indicates multilingual fields (name_en, name_he, name_ar, name_ru)
 
-## UI/UX Requirements
+### Storage Buckets
+- **menu-images** - Category and item images
+- **popup-images** - Promotional popup images
+- **restaurant-assets** - Logo and other assets
 
-### Menu Display Flow
-1. **Category Grid** - Visual categories with images and names
-2. **Item List** - Dishes in selected category with images and descriptions
-3. **Item Details** - Image left, name/description right (mobile optimized)
-4. **Add-ons Modal** - Overlay for toppings selection
-5. **Allergen Icons** - Clear visual indicators
+## Key Routes
 
-### Design System
-- **CSS Variables** - All colors, fonts, spacing as variables in globals.css
-- **Dark Elegant Theme** - Professional sports bar aesthetic
-- **Responsive Grid** - Mobile-first with desktop adaptation
-- **Touch-Friendly** - Large tap targets for mobile
+### Public Routes
+- `/` - Main menu page
+- `/menu` - Alias for main menu
 
-### Performance Optimization
-- **Image Lazy Loading** - Intersection Observer API
-- **AVIF with Fallback** - Modern format with JPG backup
-- **Component Splitting** - Code splitting for faster initial load
-- **Caching Strategy** - Cache menu data appropriately
+### Admin Routes (Protected)
+- `/admin-giggsi-2024/login` - Admin login
+- `/admin-giggsi-2024` - Dashboard
+- `/admin-giggsi-2024/categories` - Manage categories
+- `/admin-giggsi-2024/menu-items` - Manage menu items
+- `/admin-giggsi-2024/addon-groups` - Manage add-on groups
+- `/admin-giggsi-2024/addons` - Manage individual add-ons
+- `/admin-giggsi-2024/promotions` - Manage popups
+- `/admin-giggsi-2024/settings` - Restaurant settings
 
-## Admin Panel Requirements
+## Important Implementation Details
 
-### Admin Features
-- **Secure Access** - Separate URL path (/admin-giggsi-2024)
-- **Menu Management** - CRUD operations for categories/items
-- **Image Upload** - Drag-drop with AVIF conversion
-- **Popup Manager** - Create/manage site and category popups
-- **Restaurant Info** - Update hours, contact, logo
-- **User Management** - Admin user authentication only
+### Image Optimization Strategy
+- **AVIF Conversion:** Custom implementation in `lib/imageProcessor.ts`
+- **Responsive Sizes:** Small (400px) and large (800px) variants
+- **Smart Compression:** Preserves quality while minimizing file size
+- **Storage:** Supabase Storage with organized folder structure
+- **Lazy Loading:** Intersection Observer for performance
 
-### Admin Security Rules
-- **No Admin Links** - Zero references to admin in public menu
-- **Environment Auth** - Admin credentials not hardcoded
-- **Session Management** - Supabase Auth with secure tokens
-- **Input Validation** - Sanitize all admin inputs
+### Multilingual Implementation
+- **i18n Setup:** Configured in `src/i18n/index.ts`
+- **Language Detection:** Browser preference with localStorage override
+- **RTL Support:** Automatic direction switching for Hebrew/Arabic
+- **Translation Keys:** Nested JSON structure in `locales/` folder
 
-## Code Quality Standards
+### Authentication Flow
+- **Supabase Auth:** Email/password authentication
+- **Protected Routes:** HOC pattern with `ProtectedRoute` component
+- **Session Management:** Persistent sessions with auto-refresh
+- **Admin Access:** Single route prefix `/admin-giggsi-2024`
 
-### Component Design
-```typescript
-// ✅ GOOD - Short, clear, typed
-const MenuCard = ({ item }: { item: MenuItem }) => {
-  return <Card>{item.name}</Card>
-}
+### Performance Optimizations
+- **Code Splitting:** Manual chunks for vendor, router, supabase, i18n
+- **Image Loading:** Progressive enhancement with blur-up placeholder
+- **Bundle Size:** Optimized imports, tree-shaking enabled
+- **Caching:** Browser caching for static assets
 
-// ❌ BAD - Verbose, unclear
-const MenuItemDisplayCardWithImageAndDescription = (props: any) => {
-  // Complex nested logic
-}
-```
-
-### Function Naming
-```typescript
-// ✅ GOOD
-loadMenu()
-saveItem()
-deleteCategory()
-
-// ❌ BAD  
-loadMenuDataFromSupabaseDatabase()
-saveMenuItemToBackendWithValidation()
-```
-
-### File Naming
-```
-MenuCard.tsx          # ✅ Component files
-useMenu.ts           # ✅ Custom hooks  
-menu-utils.ts        # ✅ Utility files
-MenuItemWithLongName.tsx  # ❌ Too verbose
-```
-
-## Technical Implementation Rules
-
-### React Patterns
-- **Functional Components Only** - No class components
-- **Custom Hooks** - Extract reusable logic
-- **Context for Global State** - Avoid prop drilling
-- **Error Boundaries** - Graceful error handling
-- **Suspense** - Loading states for async components
-
-### 🗄️ Database Commands Integration
-- **Row Level Security** - Secure data access
-- **Real-time Updates** - Live admin changes
-- **Optimistic Updates** - Fast UI responses
-- **Error Handling** - Supabase error management
-- **Type Generation** - Generate types from schema
-
-### Image Optimization Module
-```typescript
-// Required: AVIF conversion utility
-const convertToAVIF = async (file: File) => {
-  // Convert to AVIF format
-  // Generate small (400px) and large (800px) versions
-  // Return optimized files
-}
-```
-
-## Development Workflow
-
-### Commit Standards
-- **Conventional Commits** - feat:, fix:, refactor:
-- **Small Commits** - Single responsibility changes
-- **Clear Messages** - Describe what and why
-
-### Testing Requirements
-- **Component Tests** - React Testing Library
-- **E2E Tests** - Critical user journeys
-- **Performance Tests** - Load time validation
-- **Mobile Testing** - Touch and responsive behavior
-
-## Performance Targets
-
-### Loading Requirements
-- **First Contentful Paint** - Under 1.5 seconds
-- **Largest Contentful Paint** - Under 2 seconds  
-- **Cumulative Layout Shift** - Under 0.1
-- **Time to Interactive** - Under 2.5 seconds
-
-### Image Optimization
-- **AVIF Primary** - Modern efficient format
-- **Progressive Loading** - Blur-up technique
-- **Responsive Images** - Appropriate sizes for screen
-- **Compression** - Quality 80-85 for optimal balance
-
-## Business Logic
-
-### Restaurant Context (See PRD.md for full details)
-- **Name:** Giggsi Sports Bar Restaurant
-- **Location:** Beer Sheva, Israel  
-- **Atmosphere:** Modern sports bar, dynamic environment
-- **Target:** Sports fans, young adults, families (99% mobile users)
-- **Peak Hours:** Evening matches and weekends
-
-### Menu Structure (Full spec in PRD.md Section 3.1)
-- **Categories:** Visual grid with appealing images
-- **Items:** Image RIGHT, text LEFT (RTL: opposite)  
-- **Allergens:** Clear, international symbols
-- **Add-ons:** Up to 2 types (e.g., sauces, sides)
-- **Descriptions:** Appetizing, concise copy in 4 languages
-
-## Deployment & Maintenance
-
-### Environment Setup
-- **Development** - Local with Supabase local instance
-- **Staging** - Preview deployments
-- **Production** - Optimized build with CDN
-
-### Monitoring Requirements
-- **Performance Monitoring** - Core Web Vitals tracking
-- **Error Tracking** - Runtime error collection
-- **User Analytics** - Menu usage patterns
-- **Admin Activity** - Change logging
-
----
-
-## Quick Start Commands
-
-### 🚀 Initialize Project
+### Environment Variables
 ```bash
-# Start DIGITALMENU project development
-claude "Initialize the DIGITALMENU project using react-frontend-developer agent. Set up React 19 + TypeScript + shadcn/ui with mobile-first architecture. Use the logo_giggsi.png and giggsi_menu.json files in the project directory."
+VITE_SUPABASE_URL=           # Supabase project URL
+VITE_SUPABASE_ANON_KEY=      # Supabase anonymous key
+VITE_APP_ENV=                 # development | production
 ```
 
-### 📊 Load Menu Data
-```bash
-# Import and structure menu data
-claude "use supabase-developer to analyze giggsi_menu.json and create the database schema with proper relationships for categories, items, allergens, and add-ons"
-```
-
-### 🌐 Setup Internationalization  
-```bash
-# Configure 4-language support
-claude "use i18n-specialist to set up react-i18next with Hebrew (RTL), Arabic (RTL), Russian (LTR), and English (LTR) support"
-```
-
-### 🎨 Create Base Components
-```bash  
-# Build core UI components
-claude "use react-frontend-developer to create the category grid and menu item display components with image RIGHT, text LEFT layout (RTL: opposite)"
-```
-
-### 🔧 Development Commands
-```bash
-npm run dev          # Start development server
-npm run build        # Production build
-npm run test         # Run test suite
-npm run lint         # Code quality check
-```
-
-### Supabase
-```bash
-npx supabase start   # Local Supabase
-npx supabase db push # Deploy schema changes  
-npx supabase gen types # Generate TypeScript types
-```
-
-**Remember:** This is a high-performance mobile menu for a busy sports bar. Every millisecond of load time and every touch interaction matters for customer experience.
-
-**📖 Complete Project Context:** All business requirements, user personas, launch phases, and deployment strategy are detailed in `PRD.md`.
+### Deployment Configuration
+- **Platform:** Vercel
+- **Build Command:** `npm run build`
+- **Output Directory:** `dist`
+- **Node Version:** 18.x
+- **Environment Variables:** Set in Vercel dashboard

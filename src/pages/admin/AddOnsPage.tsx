@@ -9,7 +9,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { supabase } from '@/lib/supabase'
-import { ArrowLeft, Plus, Edit, Trash2, Loader2 } from 'lucide-react'
+import { useDragSort } from '@/hooks/useDragSort'
+import { ArrowLeft, Plus, Edit, Trash2, Loader2, GripVertical } from 'lucide-react'
 import { formatPrice } from '@/lib/utils'
 import type { AddOn, AddOnGroup } from '@/lib/types'
 
@@ -24,6 +25,13 @@ export const AddOnsPage: React.FC = () => {
   const [formData, setFormData] = useState<Partial<AddOn>>({})
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+
+  // Drag and drop functionality
+  const { dragHandlers, isDragging } = useDragSort({
+    items: addons,
+    onReorder: setAddons,
+    tableName: 'add_ons'
+  })
 
   useEffect(() => {
     if (groupId) {
@@ -175,26 +183,29 @@ export const AddOnsPage: React.FC = () => {
         )}
 
         <div className="grid gap-4">
-          {addons.map((addon) => (
-            <Card key={addon.id}>
+          {addons.map((addon, index) => (
+            <Card key={addon.id} {...dragHandlers(index)}>
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <h3 className="font-semibold">{addon.name_he}</h3>
-                      <Badge variant="outline">{formatPrice(addon.price)}</Badge>
-                      {!addon.is_available && (
-                        <Badge variant="secondary">לא זמין</Badge>
+                  <div className="flex items-center gap-3 flex-1">
+                    <GripVertical className="h-5 w-5 text-muted-foreground cursor-move" />
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <h3 className="font-semibold">{addon.name_he}</h3>
+                        <Badge variant="outline">{formatPrice(addon.price)}</Badge>
+                        {!addon.is_available && (
+                          <Badge variant="secondary">לא זמין</Badge>
+                        )}
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        סוג: {addon.addon_type} • סדר: {addon.display_order}
+                      </p>
+                      {addon.name_en && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {addon.name_en}
+                        </p>
                       )}
                     </div>
-                    <p className="text-sm text-muted-foreground">
-                      סוג: {addon.addon_type} • סדר: {addon.display_order}
-                    </p>
-                    {addon.name_en && (
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {addon.name_en}
-                      </p>
-                    )}
                   </div>
                   
                   <div className="flex items-center gap-2">

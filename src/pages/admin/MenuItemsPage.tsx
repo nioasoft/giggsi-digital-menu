@@ -13,7 +13,8 @@ import { ItemAddonsSection } from '@/components/admin/ItemAddonsSection'
 import { Badge } from '@/components/ui/badge'
 import { supabase } from '@/lib/supabase'
 import { deleteOldImages } from '@/lib/imageProcessor'
-import { ArrowLeft, Plus, Edit, Trash2, Loader2, Search } from 'lucide-react'
+import { useDragSort } from '@/hooks/useDragSort'
+import { ArrowLeft, Plus, Edit, Trash2, Loader2, Search, GripVertical } from 'lucide-react'
 
 interface MenuItem {
   id: string
@@ -63,6 +64,33 @@ export const MenuItemsPage: React.FC = () => {
   const [error, setError] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<string>(categoryId || 'all')
+
+  // Filter items by selected category and search term
+  const getFilteredItems = () => {
+    return items.filter(item => {
+      const matchesSearch = item.name_he.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                            item.description_he?.toLowerCase().includes(searchTerm.toLowerCase())
+      const matchesCategory = selectedCategory === 'all' || item.category_id === selectedCategory
+      return matchesSearch && matchesCategory
+    })
+  }
+  
+  const filteredItems = getFilteredItems()
+
+  // Drag and drop functionality
+  const { dragHandlers, isDragging } = useDragSort({
+    items: filteredItems,
+    onReorder: (reorderedItems) => {
+      // Update the main items array with reordered items
+      if (selectedCategory === 'all') {
+        setItems(reorderedItems)
+      } else {
+        const otherItems = items.filter(item => item.category_id !== selectedCategory)
+        setItems([...otherItems, ...reorderedItems])
+      }
+    },
+    tableName: 'menu_items'
+  })
 
   useEffect(() => {
     loadData()
@@ -221,13 +249,6 @@ export const MenuItemsPage: React.FC = () => {
     }
   }
 
-  const filteredItems = items.filter(item => {
-    const matchesSearch = item.name_he.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          item.description_he?.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesCategory = selectedCategory === 'all' || item.category_id === selectedCategory
-    return matchesSearch && matchesCategory
-  })
-
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -295,12 +316,13 @@ export const MenuItemsPage: React.FC = () => {
         </div>
 
         <div className="grid gap-4">
-          {filteredItems.map((item) => {
+          {filteredItems.map((item, index) => {
             const category = categories.find(c => c.id === item.category_id)
             return (
-              <Card key={item.id}>
+              <Card key={item.id} {...dragHandlers(index)}>
                 <CardContent className="p-4">
                   <div className="flex items-center gap-4">
+                    <GripVertical className="h-5 w-5 text-muted-foreground cursor-move" />
                     {(item.image_urls || item.image_url) && (
                       <img
                         src={item.image_urls?.small || item.image_url}

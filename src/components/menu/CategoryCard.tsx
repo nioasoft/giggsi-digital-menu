@@ -11,6 +11,8 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({
 }) => {
   const { t, i18n } = useTranslation()
   const localizedContent = getLocalizedContent(category, i18n.language)
+  const [showTooltip, setShowTooltip] = React.useState(false)
+  
   return (
     <Card 
       className={cn(
@@ -19,9 +21,11 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({
         onClick && "hover:bg-accent/50"
       )}
       onClick={onClick}
+      onTouchStart={() => setShowTooltip(true)}
+      onTouchEnd={() => setTimeout(() => setShowTooltip(false), 2000)}
     >
       <CardContent className="p-0">
-        <div className="aspect-square relative overflow-hidden rounded-t-lg">
+        <div className="aspect-[4/3] sm:aspect-square relative overflow-hidden rounded-t-lg">
           {(category.image_urls || category.image_url) ? (
             <img
               src={
@@ -50,12 +54,17 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({
           )}
         </div>
         
-        <div className="p-4 text-center">
-          <h3 className="font-semibold text-lg mb-1 line-clamp-1">
+        <div className="p-3 sm:p-4 text-center relative">
+          {showTooltip && localizedContent.name.length > 15 && (
+            <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-black/90 text-white px-2 py-1 rounded text-sm whitespace-nowrap z-10">
+              {localizedContent.name}
+            </div>
+          )}
+          <h3 className="font-semibold text-base sm:text-lg mb-1.5 line-clamp-2">
             {localizedContent.name}
           </h3>
           {localizedContent.description && (
-            <p className="text-sm text-muted-foreground line-clamp-2 mb-2">
+            <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2 mb-1">
               {localizedContent.description}
             </p>
           )}

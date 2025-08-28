@@ -50,22 +50,22 @@ export const MenuPage: React.FC = () => {
         />
       )}
       
-      <div className="container py-6 space-y-6 flex-1">
+      <div className="container py-4 sm:py-6 space-y-4 sm:space-y-6 flex-1">
         {/* Promotional Popups */}
         <PopupManager categoryId={selectedCategoryId || undefined} showBanners={false} />
         
         {!selectedCategoryId && (
         <>
-          <div className="text-center space-y-2">
-            <div className="space-y-1">
-              <p className="text-2xl text-foreground">
+          <div className="text-center space-y-1 sm:space-y-2">
+            <div className="space-y-0.5 sm:space-y-1">
+              <p className="text-xl sm:text-2xl text-foreground">
                 {t('restaurant.welcomeOnly')}
               </p>
-              <h1 className="text-3xl font-bold text-giggsi-gold">
+              <h1 className="text-2xl sm:text-3xl font-bold text-giggsi-gold">
                 {t('restaurant.name')}
               </h1>
             </div>
-            <p className="text-muted-foreground">
+            <p className="text-sm sm:text-base text-muted-foreground">
               {t('menu.selectCategory')}
             </p>
           </div>

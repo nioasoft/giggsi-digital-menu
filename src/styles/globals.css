@@ -128,7 +128,14 @@
 
   /* Menu-specific styles */
   .menu-grid {
-    @apply grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4;
+    @apply grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4;
+  }
+  
+  /* Mobile-optimized grid */
+  @media (max-width: 400px) {
+    .menu-grid {
+      @apply gap-2;
+    }
   }
 
   .menu-item {
@@ -147,6 +154,29 @@
   
   .text-end {
     text-align: end;
+  }
+  
+  /* Drag and Drop Styles */
+  .dragging {
+    opacity: 0.5;
+    cursor: move;
+  }
+  
+  .drag-over {
+    background: rgba(255, 193, 7, 0.1);
+    border: 2px dashed hsl(var(--giggsi-gold));
+    transition: all 0.2s ease;
+  }
+  
+  [draggable="true"] {
+    cursor: move;
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  
+  [draggable="true"]:hover {
+    background: rgba(255, 193, 7, 0.05);
   }
   
   .justify-start {
