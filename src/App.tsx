@@ -120,8 +120,8 @@ function App() {
             }
           />
         </Routes>
+        <Analytics />
       </Router>
-      <Analytics />
     </>
   )
 }
