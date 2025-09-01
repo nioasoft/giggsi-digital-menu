@@ -20,7 +20,8 @@ i18n
   .init({
     resources,
     fallbackLng: 'he',
-    debug: import.meta.env.DEV,
+    debug: false,
+    lng: 'he', // Force Hebrew as default
     
     detection: {
       order: ['localStorage', 'navigator', 'htmlTag'],

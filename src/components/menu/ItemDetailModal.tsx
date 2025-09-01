@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Dialog, DialogContent } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { useTranslation } from 'react-i18next'
@@ -152,12 +152,13 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({ item, open, on
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" isRTL={isRTL}>
-        {/* Header */}
-        <div className="mb-4 w-full text-start">
-          <h2 className="w-full text-lg font-semibold leading-none tracking-tight">
-            {localizedContent.name}
-          </h2>
-        </div>
+        {/* Header with proper accessibility */}
+        <DialogTitle className="mb-4 w-full text-start text-lg font-semibold leading-none tracking-tight">
+          {localizedContent.name}
+        </DialogTitle>
+        <DialogDescription className="sr-only">
+          {localizedContent.description || localizedContent.name}
+        </DialogDescription>
 
         <div className="space-y-6">
           {/* Item Image */}
@@ -259,7 +260,7 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({ item, open, on
           {/* Price */}
           <div className="pt-4 border-t">
             <div className="flex items-center justify-between">
-              <span className="text-lg font-semibold">{t('menu.price')}:</span>
+              <span className="text-lg font-semibold">{t('common.price')}:</span>
               <span className="text-2xl font-bold text-giggsi-gold">
                 {formatPrice(item.price)}
               </span>

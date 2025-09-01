@@ -2,19 +2,14 @@ import React from 'react'
 import { useTranslation } from 'react-i18next'
 import { getDirection } from '@/lib/utils'
 import { LanguageSwitcher } from './LanguageSwitcher'
-import { CookieConsent } from '@/components/privacy/CookieConsent'
 import { Loader2 } from 'lucide-react'
-import { Link, useNavigate } from 'react-router-dom'
-import { MenuProvider, useMenuContext } from '@/contexts/MenuContext'
 
 interface LayoutProps {
   children: React.ReactNode
 }
 
-const LayoutContent: React.FC<LayoutProps> = ({ children }) => {
+export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { t, i18n } = useTranslation()
-  const navigate = useNavigate()
-  const { setSelectedCategoryId } = useMenuContext()
   const direction = getDirection(i18n.language)
 
   React.useEffect(() => {
@@ -22,21 +17,13 @@ const LayoutContent: React.FC<LayoutProps> = ({ children }) => {
     document.documentElement.lang = i18n.language
   }, [direction, i18n.language])
 
-  const handleLogoClick = () => {
-    setSelectedCategoryId(null)
-    navigate('/menu')
-  }
-
   return (
     <div className="min-h-screen bg-background text-foreground">
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container flex h-16 items-center justify-between">
           <LanguageSwitcher />
           
-          <button 
-            onClick={handleLogoClick}
-            className="flex items-center gap-4 cursor-pointer transition-opacity hover:opacity-80"
-          >
+          <div className="flex items-center gap-4">
             <h1 className="text-xl font-bold text-giggsi-gold">
               {t('restaurant.name')}
             </h1>
@@ -45,7 +32,7 @@ const LayoutContent: React.FC<LayoutProps> = ({ children }) => {
               alt={t('restaurant.name')}
               className="h-10 w-auto"
             />
-          </button>
+          </div>
         </div>
       </header>
 
@@ -82,39 +69,11 @@ const LayoutContent: React.FC<LayoutProps> = ({ children }) => {
               </p>
             </div>
           </div>
-          <div className="mt-6 pt-6 border-t">
-            <div className="flex flex-wrap justify-center gap-4 mb-4 text-sm">
-              <Link to="/privacy" className="hover:text-giggsi-gold transition-colors">
-                {t('footer.privacy')}
-              </Link>
-              <Link to="/terms" className="hover:text-giggsi-gold transition-colors">
-                {t('footer.terms')}
-              </Link>
-              <button 
-                onClick={() => {
-                  localStorage.removeItem('cookieConsent')
-                  window.location.reload()
-                }}
-                className="hover:text-giggsi-gold transition-colors"
-              >
-                {t('footer.cookieSettings')}
-              </button>
-            </div>
-            <div className="text-center text-sm text-muted-foreground">
-              {t('restaurant.name')} בע"מ. {t('footer.allRights')} 2025
-            </div>
+          <div className="mt-6 pt-6 border-t text-center text-sm text-muted-foreground">
+            © 2024 {t('restaurant.name')}. All rights reserved.
           </div>
         </div>
       </footer>
-      <CookieConsent />
     </div>
-  )
-}
-
-export const Layout: React.FC<LayoutProps> = ({ children }) => {
-  return (
-    <MenuProvider>
-      <LayoutContent>{children}</LayoutContent>
-    </MenuProvider>
   )
 }

@@ -10,10 +10,11 @@ import { useMenuCategories, useMenuItems } from '@/hooks/useMenu'
 import { Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { MenuItem } from '@/lib/types'
+import { useMenuContext } from '@/contexts/MenuContext'
 
 export const MenuPage: React.FC = () => {
   const { t } = useTranslation()
-  const [selectedCategoryId, setSelectedCategoryId] = React.useState<string | null>(null)
+  const { selectedCategoryId, setSelectedCategoryId } = useMenuContext()
   const [selectedItem, setSelectedItem] = React.useState<MenuItem | null>(null)
   const [detailModalOpen, setDetailModalOpen] = React.useState(false)
   

@@ -12,8 +12,6 @@ import { SettingsPage } from '@/pages/admin/SettingsPage'
 import { AddOnGroupsPage } from '@/pages/admin/AddOnGroupsPage'
 import { AddOnsPage } from '@/pages/admin/AddOnsPage'
 import { ProtectedRoute } from '@/components/admin/ProtectedRoute'
-import { PrivacyPolicy } from '@/pages/legal/PrivacyPolicy'
-import { TermsOfService } from '@/pages/legal/TermsOfService'
 import MigrateData from '@/pages/MigrateData'
 import FullMigrate from '@/pages/FullMigrate'
 import EnvCheck from '@/pages/EnvCheck'
@@ -113,8 +111,6 @@ function App() {
                 <Routes>
                   <Route path="/" element={<Navigate to="/menu" replace />} />
                   <Route path="/menu" element={<MenuPage />} />
-                  <Route path="/privacy" element={<PrivacyPolicy />} />
-                  <Route path="/terms" element={<TermsOfService />} />
                   <Route path="/migrate" element={<MigrateData />} />
                   <Route path="/fullmigrate" element={<FullMigrate />} />
                   <Route path="/env-check" element={<EnvCheck />} />

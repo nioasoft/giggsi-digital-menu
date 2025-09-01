@@ -4,6 +4,7 @@ import { useLocation } from 'react-router-dom'
 declare global {
   interface Window {
     dataLayer: any[]
+    gtmEvent: (eventName: string, eventData?: any) => void
   }
 }
 
@@ -11,10 +12,49 @@ export function GoogleTagManager() {
   const location = useLocation()
 
   useEffect(() => {
-    // Initialize dataLayer if it doesn't exist
-    window.dataLayer = window.dataLayer || []
+    // Check for consent before initializing
+    const consent = localStorage.getItem('cookieConsent')
+    if (!consent) return // Don't initialize if no consent
     
-    // Push page view event on route change
+    const prefs = JSON.parse(consent)
+    if (!prefs.analytics && !prefs.marketing) return // Don't initialize if both denied
+
+    // Load GTM script dynamically only if consent is given
+    if (!window.dataLayer) {
+      window.dataLayer = []
+      
+      // Set consent mode first
+      window.dataLayer.push({
+        event: 'consent_default',
+        analytics_storage: prefs.analytics ? 'granted' : 'denied',
+        ad_storage: prefs.marketing ? 'granted' : 'denied',
+        wait_for_update: 500
+      })
+
+      // Load GTM script
+      const script = document.createElement('script')
+      script.async = true
+      script.src = `https://www.googletagmanager.com/gtm.js?id=GTM-MT8H76TR`
+      
+      script.onload = () => {
+        window.dataLayer.push({
+          'gtm.start': new Date().getTime(),
+          event: 'gtm.js'
+        })
+      }
+      
+      document.head.appendChild(script)
+    }
+  }, [])
+
+  useEffect(() => {
+    const consent = localStorage.getItem('cookieConsent')
+    if (!consent) return
+    
+    const prefs = JSON.parse(consent)
+    if (!prefs.analytics) return
+
+    window.dataLayer = window.dataLayer || []
     window.dataLayer.push({
       event: 'pageview',
       page: {
@@ -24,10 +64,15 @@ export function GoogleTagManager() {
     })
   }, [location])
 
-  // Custom event helper that can be used throughout the app
+  // Custom event helper
   useEffect(() => {
-    // Make gtmEvent globally available for custom tracking
     window.gtmEvent = (eventName: string, eventData?: any) => {
+      const consent = localStorage.getItem('cookieConsent')
+      if (!consent) return
+      
+      const prefs = JSON.parse(consent)
+      if (!prefs.analytics && !prefs.marketing) return
+      
       window.dataLayer = window.dataLayer || []
       window.dataLayer.push({
         event: eventName,
@@ -37,11 +82,4 @@ export function GoogleTagManager() {
   }, [])
 
   return null
-}
-
-// Type declaration for the global gtmEvent function
-declare global {
-  interface Window {
-    gtmEvent: (eventName: string, eventData?: any) => void
-  }
 }

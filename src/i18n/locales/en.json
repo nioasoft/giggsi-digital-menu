@@ -24,11 +24,15 @@
     "addOns": "Add-ons",
     "description": "Description",
     "unavailable": "Currently unavailable",
-    "selectCategory": "Select a category to view items"
+    "selectCategory": "Select a category to view items",
+    "itemCount": "{{count}} items",
+    "itemCount_one": "1 item",
+    "itemCount_other": "{{count}} items"
   },
   "restaurant": {
-    "name": "Giggsi Sports Bar",
-    "welcome": "Welcome to Giggsi Sports Bar",
+    "name": "Gigsi Sports Bar",
+    "welcome": "Welcome to Gigsi Sports Bar",
+    "welcomeOnly": "Welcome to",
     "location": "Beer Sheva",
     "phone": "Phone",
     "address": "Address",
@@ -49,5 +53,156 @@
     "sides": "Sides",
     "toppings": "Toppings",
     "extras": "Extras"
+  },
+  "footer": {
+    "privacy": "Privacy Policy",
+    "terms": "Terms of Service",
+    "cookieSettings": "Cookie Settings",
+    "allRights": "All rights reserved"
+  },
+  "privacy": {
+    "cookieConsent": {
+      "title": "Privacy & Cookie Settings",
+      "description": "We use cookies to improve your experience. Please choose your preferences:",
+      "necessary": "Necessary Cookies",
+      "necessaryDesc": "Required for basic site functionality",
+      "analytics": "Analytics Cookies",
+      "analyticsDesc": "Help us understand how the site is used",
+      "marketing": "Marketing Cookies",
+      "marketingDesc": "Used to display relevant marketing content",
+      "acceptAll": "Accept All",
+      "acceptSelected": "Accept Selected",
+      "rejectAll": "Reject All"
+    },
+    "policy": {
+      "title": "Privacy Policy",
+      "lastUpdated": "Last Updated",
+      "introduction": {
+        "title": "Introduction",
+        "content": "At Giggsi Sports Bar, we are committed to protecting your privacy. This privacy policy explains how we collect, use, and protect your information in accordance with privacy regulations."
+      },
+      "dataController": {
+        "title": "Data Controller"
+      },
+      "dataCollection": {
+        "title": "What Information We Collect",
+        "types": "Types of information collected:",
+        "analytics": "Usage data and analytics (pages viewed, visit times)",
+        "preferences": "User preferences (language, display settings)",
+        "adminData": "Admin details (email, password) - admin area only"
+      },
+      "purposes": {
+        "title": "How We Use Information",
+        "service": "Providing the service and digital menu",
+        "improvement": "Improving user experience and the website",
+        "legal": "Complying with legal requirements"
+      },
+      "rights": {
+        "title": "Your Rights",
+        "access": "Right to access your information",
+        "correction": "Right to correct inaccurate information",
+        "deletion": "Right to delete information",
+        "portability": "Right to data portability",
+        "objection": "Right to object to processing",
+        "withdrawal": "Right to withdraw consent",
+        "howTo": "To exercise your rights, please contact us using the details below."
+      },
+      "cookies": {
+        "title": "Use of Cookies",
+        "types": "Types of cookies:",
+        "necessary": "Necessary Cookies",
+        "necessaryDesc": "Required for basic site functionality and cannot be disabled",
+        "analytics": "Analytics Cookies",
+        "analyticsDesc": "Allow us to understand how the site is used and improve it",
+        "marketing": "Marketing Cookies",
+        "marketingDesc": "Used to personalize marketing content"
+      },
+      "security": {
+        "title": "Information Security",
+        "content": "We implement appropriate technical and organizational measures to protect your information from unauthorized access, alteration, disclosure, or destruction."
+      },
+      "retention": {
+        "title": "Data Retention",
+        "content": "We retain your information only as long as necessary for the purposes it was collected or as required by law."
+      },
+      "thirdParties": {
+        "title": "Sharing with Third Parties",
+        "note": "We do not sell or share your personal information with third parties for marketing purposes."
+      },
+      "children": {
+        "title": "Children's Privacy",
+        "content": "Our site is not intended for children under 13. We do not knowingly collect personal information from children."
+      },
+      "changes": {
+        "title": "Changes to Policy",
+        "content": "We may update this policy from time to time. Material changes will be notified through the website."
+      },
+      "contact": {
+        "title": "Contact Us",
+        "content": "For questions about the privacy policy or to exercise your rights, please contact us:"
+      },
+      "compliance": "This policy complies with Israeli Privacy Protection Law and European GDPR."
+    }
+  },
+  "terms": {
+    "title": "Terms of Service",
+    "lastUpdated": "Last Updated",
+    "acceptance": {
+      "title": "Acceptance of Terms",
+      "content": "By using this website, you agree to these terms of service. If you do not agree, please refrain from using the site."
+    },
+    "use": {
+      "title": "Use of Site",
+      "content": "The site is intended for viewing the menu and restaurant information only.",
+      "permitted": "Personal and lawful use only",
+      "prohibited": "Commercial use or copying content without permission is prohibited"
+    },
+    "content": {
+      "title": "Content and Copyright",
+      "ownership": "All content on this site belongs to Giggsi Sports Bar and is protected by copyright.",
+      "restrictions": "Content may not be copied, reproduced, or distributed without written permission."
+    },
+    "disclaimer": {
+      "title": "Disclaimer",
+      "content": "The site is provided as-is and we are not responsible for damages arising from site use.",
+      "menuChanges": "Prices and menu items may change without prior notice."
+    },
+    "limitation": {
+      "title": "Limitation of Liability",
+      "content": "We shall not be liable for any direct, indirect, or consequential damages arising from site use."
+    },
+    "privacy": {
+      "title": "Privacy",
+      "content": "Use of the site is subject to our privacy policy."
+    },
+    "governing": {
+      "title": "Governing Law",
+      "content": "These terms are governed by the laws of the State of Israel."
+    },
+    "changes": {
+      "title": "Changes to Terms",
+      "content": "We may update these terms from time to time. Changes take effect immediately upon posting."
+    },
+    "contact": {
+      "title": "Contact",
+      "content": "For questions about the terms of service, please contact:"
+    }
+  },
+  "admin": {
+    "title": "Admin Panel",
+    "subtitle": "Digital Menu Management - Gigsi Sports Bar",
+    "logout": "Logout",
+    "categories": "Categories",
+    "categoriesSubtitle": "Manage menu categories",
+    "menuItems": "Menu Items",
+    "menuItemsSubtitle": "Manage menu items",
+    "images": "Images",
+    "imagesSubtitle": "Manage images",
+    "promotions": "Promotions",
+    "promotionsSubtitle": "Manage promotions and popups",
+    "restaurantInfo": "Restaurant Info",
+    "restaurantInfoSubtitle": "Manage restaurant details",
+    "adminUsers": "Admin Users",
+    "adminUsersSubtitle": "Manage system users"
   }
 }

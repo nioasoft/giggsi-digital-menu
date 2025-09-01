@@ -18,8 +18,8 @@ export const CategoryTabs: React.FC<CategoryTabsProps> = ({
   const { i18n } = useTranslation()
   return (
     <div className="sticky top-0 z-10 bg-background border-b">
-      <div className="w-full overflow-x-auto">
-        <div className="flex gap-2 p-4 min-w-max">
+      <div className="container overflow-x-auto">
+        <div className="flex gap-2 py-4 min-w-max">
           {categories.map((category) => (
             <Button
               key={category.id}
