@@ -1,9 +1,10 @@
 import { supabase } from './supabase'
 import type { WaiterUser } from './types'
+import { config } from './config'
 
 // פתרון פשוט - מלצר נרשם בעצמו
 export async function signUpWaiter(email: string, password: string, name: string) {
-  // 1. Create auth user using regular signup
+  // 1. Create auth user using regular signup with correct redirect URL
   const { data: authData, error: authError } = await supabase.auth.signUp({
     email,
     password,
@@ -11,7 +12,8 @@ export async function signUpWaiter(email: string, password: string, name: string
       data: {
         name,
         role: 'waiter'
-      }
+      },
+      emailRedirectTo: config.getEmailRedirectUrl()
     }
   })
 
