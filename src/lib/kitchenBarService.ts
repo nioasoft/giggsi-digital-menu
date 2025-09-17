@@ -40,107 +40,21 @@ export async function getArchivedKitchenOrders(): Promise<KitchenBarOrder[]> {
   const twentyFourHoursAgo = new Date()
   twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24)
 
-  // Get archived items with menu and order info joined
-  const { data: items, error: itemsError } = await supabase
-    .from('order_items')
-    .select(`
-      id,
-      order_id,
-      quantity,
-      notes,
-      addons,
-      batch_number,
-      cooking_preference,
-      sent_to_kitchen_at,
-      created_at,
-      kitchen_ready_at,
-      menu_items!inner(name_he),
-      orders!inner(
-        id,
-        table_id
-      )
-    `)
-    .eq('kitchen_status', 'archived')
-    .gte('kitchen_ready_at', twentyFourHoursAgo.toISOString())
-    .order('kitchen_ready_at', { ascending: false })
+  // Use the new view that bypasses RLS issues
+  const { data, error } = await supabase
+    .from('archived_kitchen_orders')
+    .select('*')
+    .gte('ready_at', twentyFourHoursAgo.toISOString())
+    .order('ready_at', { ascending: false })
     .limit(100)
 
-  if (itemsError) {
-    console.error('Error fetching archived orders:', itemsError)
-    throw itemsError
+  if (error) {
+    console.error('Error fetching archived orders:', error)
+    throw error
   }
 
-  if (!items || items.length === 0) {
-    return []
-  }
-
-  // Extract unique table IDs from the joined data
-  const tableIds = [...new Set(
-    items
-      .map((item: any) => item.orders?.table_id)
-      .filter(Boolean)
-  )]
-
-  if (tableIds.length === 0) {
-    // No table IDs found, return with table_number 0
-    const transformedData = items.map((item: any) => ({
-      id: item.id,
-      order_id: item.order_id,
-      quantity: item.quantity,
-      notes: item.notes,
-      addons: item.addons,
-      batch_number: item.batch_number,
-      cooking_preference: item.cooking_preference,
-      status: 'archived' as DisplayStatus,
-      created_at: item.created_at,
-      sent_to_kitchen_at: item.sent_to_kitchen_at,
-      started_at: null,
-      ready_at: item.kitchen_ready_at,
-      item_name: item.menu_items?.name_he || '',
-      item_name_en: '',
-      table_number: 0,
-      waiter_name: null
-    }))
-    return transformedData
-  }
-
-  // Fetch tables
-  const { data: tables, error: tablesError } = await supabase
-    .from('tables')
-    .select('id, table_number')
-    .in('id', tableIds)
-
-  if (tablesError) {
-    console.error('Error fetching table details:', tablesError)
-    throw tablesError
-  }
-
-  // Create a map of table_id to table_number
-  const tableMap = new Map(
-    tables?.map(table => [table.id, table.table_number]) || []
-  )
-
-  // Transform data to match KitchenBarOrder interface
-  const transformedData = items.map((item: any) => ({
-    id: item.id,
-    order_id: item.order_id,
-    quantity: item.quantity,
-    notes: item.notes,
-    addons: item.addons,
-    batch_number: item.batch_number,
-    cooking_preference: item.cooking_preference,
-    status: 'archived' as DisplayStatus,
-    created_at: item.created_at,
-    sent_to_kitchen_at: item.sent_to_kitchen_at,
-    started_at: null,
-    ready_at: item.kitchen_ready_at,
-    item_name: item.menu_items?.name_he || '',
-    item_name_en: '',
-    table_number: item.orders?.table_id ? (tableMap.get(item.orders.table_id) || 0) : 0,
-    waiter_name: null
-  }))
-
-  return transformedData
+  // Data from view already matches the interface, just ensure types
+  return (data || []) as KitchenBarOrder[]
 }
 
 // Get bar orders

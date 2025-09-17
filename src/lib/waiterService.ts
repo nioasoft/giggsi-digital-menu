@@ -217,11 +217,34 @@ export async function removeOrderItem(itemId: string): Promise<void> {
 }
 
 async function updateOrderTotals(orderId: string): Promise<void> {
-  // Get all items
+  // Get all items with menu item details
   const items = await getOrderItems(orderId)
 
-  // Calculate subtotal
-  const subtotal = items.reduce((sum, item) => sum + item.total_price, 0)
+  // Calculate subtotal - handle items with missing prices
+  const subtotal = items.reduce((sum, item) => {
+    // If total_price is missing or 0, calculate it from menu item price
+    let itemTotal = item.total_price
+    if (!itemTotal || itemTotal === 0) {
+      // Use unit_price if available, otherwise use menu item price
+      const unitPrice = item.unit_price || item.menu_item?.price || 0
+      itemTotal = unitPrice * (item.quantity || 1)
+
+      // Also update the item in database if price was missing
+      if (itemTotal > 0) {
+        supabase
+          .from('order_items')
+          .update({
+            unit_price: unitPrice,
+            total_price: itemTotal
+          })
+          .eq('id', item.id)
+          .then(({ error }) => {
+            if (error) console.error('Error updating item price:', error)
+          })
+      }
+    }
+    return sum + itemTotal
+  }, 0)
 
   // Calculate service charge
   const serviceCharge = subtotal * SERVICE_CHARGE_RATE
@@ -240,6 +263,41 @@ async function updateOrderTotals(orderId: string): Promise<void> {
     .eq('id', orderId)
 
   if (error) throw error
+}
+
+// Recalculate all prices for an order (useful for fixing orders with missing prices)
+export async function recalculateOrderPrices(orderId: string): Promise<void> {
+  // Get all items with full menu item details
+  const { data: items, error: fetchError } = await supabase
+    .from('order_items')
+    .select(`
+      *,
+      menu_item:menu_items(*)
+    `)
+    .eq('order_id', orderId)
+
+  if (fetchError) throw fetchError
+
+  // Fix each item's price if needed
+  for (const item of items || []) {
+    if (!item.total_price || item.total_price === 0) {
+      const unitPrice = item.unit_price || item.menu_item?.price || 0
+      const totalPrice = unitPrice * (item.quantity || 1)
+
+      if (totalPrice > 0) {
+        await supabase
+          .from('order_items')
+          .update({
+            unit_price: unitPrice,
+            total_price: totalPrice
+          })
+          .eq('id', item.id)
+      }
+    }
+  }
+
+  // Now update the order totals
+  await updateOrderTotals(orderId)
 }
 
 export async function markOrderAsPaid(

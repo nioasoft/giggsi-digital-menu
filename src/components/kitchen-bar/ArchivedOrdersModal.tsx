@@ -40,10 +40,9 @@ export const ArchivedOrdersModal: React.FC<ArchivedOrdersModalProps> = ({ open, 
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden bg-gray-900 text-white border-gray-700">
-        <DialogHeader className="border-b border-gray-700 pb-4">
-          <DialogTitle className="text-xl font-bold text-giggsi-gold flex items-center justify-between">
-            <span>הזמנות שנסגרו (24 שעות אחרונות)</span>
+      <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden bg-gray-900 text-white border-gray-700" dir="rtl">
+        <DialogHeader className="border-b border-gray-700 pb-4 text-right">
+          <DialogTitle className="text-xl font-bold text-giggsi-gold flex items-center justify-between flex-row-reverse">
             <Button
               variant="ghost"
               size="icon"
@@ -52,13 +51,14 @@ export const ArchivedOrdersModal: React.FC<ArchivedOrdersModalProps> = ({ open, 
             >
               <X className="h-5 w-5" />
             </Button>
+            <span>הזמנות שנסגרו (24 שעות אחרונות)</span>
           </DialogTitle>
           <DialogDescription className="sr-only">
             רשימת הזמנות שהושלמו ב-24 השעות האחרונות
           </DialogDescription>
         </DialogHeader>
 
-        <div className="overflow-y-auto max-h-[calc(80vh-8rem)] p-4">
+        <div className="overflow-y-auto max-h-[calc(80vh-8rem)] p-4 text-right">
           {loading ? (
             <div className="flex items-center justify-center py-8">
               <Loader2 className="h-8 w-8 animate-spin text-giggsi-gold" />
@@ -74,7 +74,7 @@ export const ArchivedOrdersModal: React.FC<ArchivedOrdersModalProps> = ({ open, 
               {Array.from(ordersByBatch.entries()).map(([batchKey, { tableNumber, orderId, batchNumber, items }]) => {
                 const latestTime = items[0]?.ready_at
                 return (
-                  <div key={batchKey} className="bg-gray-800 rounded-lg p-4 border border-gray-700">
+                  <div key={batchKey} className="bg-gray-800 rounded-lg p-4 border border-gray-700 text-right">
                     <div className="flex justify-between items-start mb-3">
                       <div>
                         <h3 className="text-lg font-bold text-white">שולחן {tableNumber}</h3>
@@ -100,9 +100,9 @@ export const ArchivedOrdersModal: React.FC<ArchivedOrdersModalProps> = ({ open, 
 
                     <div className="space-y-2">
                       {items.map((order) => (
-                        <div key={order.id} className="flex items-start gap-3 text-sm">
+                        <div key={order.id} className="flex items-start gap-3 text-sm text-right">
                           <span className="text-gray-400 font-medium">{order.quantity}x</span>
-                          <div className="flex-1">
+                          <div className="flex-1 text-right">
                             <span className="text-white">{order.item_name}</span>
                             {order.cooking_preference && (
                               <Badge className="mr-2 bg-red-600 text-white text-xs">
