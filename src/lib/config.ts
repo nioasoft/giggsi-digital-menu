@@ -25,8 +25,11 @@ export const config = {
   },
 
   // Get email redirect URL for auth emails
+  // IMPORTANT: Always use production URL for email redirects
+  // Supabase sends emails from their servers, not from the browser
   getEmailRedirectUrl: () => {
-    const baseUrl = config.getSiteUrl()
-    return `${baseUrl}/waiter/login`
+    // Always use production URL for email redirects
+    // This ensures email links work correctly regardless of where the signup happens
+    return `${config.PRODUCTION_URL}/waiter/login`
   }
 }
