@@ -73,14 +73,10 @@ export async function getArchivedKitchenOrders(): Promise<KitchenBarOrder[]> {
   // Get unique order IDs
   const orderIds = [...new Set(items.map(item => item.order_id))]
 
-  // Fetch orders with table info
+  // Fetch orders to get table_id
   const { data: orders, error: ordersError } = await supabase
     .from('orders')
-    .select(`
-      id,
-      table_id,
-      tables!inner(table_number)
-    `)
+    .select('id, table_id')
     .in('id', orderIds)
 
   if (ordersError) {
@@ -88,9 +84,54 @@ export async function getArchivedKitchenOrders(): Promise<KitchenBarOrder[]> {
     throw ordersError
   }
 
+  if (!orders || orders.length === 0) {
+    // If no orders found, return items with table_number 0
+    const transformedData = items.map((item: any) => ({
+      id: item.id,
+      order_id: item.order_id,
+      quantity: item.quantity,
+      notes: item.notes,
+      addons: item.addons,
+      batch_number: item.batch_number,
+      cooking_preference: item.cooking_preference,
+      status: 'archived' as DisplayStatus,
+      created_at: item.created_at,
+      sent_to_kitchen_at: item.sent_to_kitchen_at,
+      started_at: null,
+      ready_at: item.kitchen_ready_at,
+      item_name: item.menu_items?.name_he || '',
+      item_name_en: '',
+      table_number: 0,
+      waiter_name: null
+    }))
+    return transformedData
+  }
+
+  // Get unique table IDs
+  const tableIds = [...new Set(orders.map(order => order.table_id).filter(Boolean))]
+
+  // Fetch tables
+  const { data: tables, error: tablesError } = await supabase
+    .from('tables')
+    .select('id, table_number')
+    .in('id', tableIds)
+
+  if (tablesError) {
+    console.error('Error fetching table details:', tablesError)
+    throw tablesError
+  }
+
+  // Create a map of table_id to table_number
+  const tableMap = new Map(
+    tables?.map(table => [table.id, table.table_number]) || []
+  )
+
   // Create a map of order_id to table_number
   const orderTableMap = new Map(
-    orders?.map((order: any) => [order.id, order.tables?.table_number || 0]) || []
+    orders.map(order => [
+      order.id,
+      order.table_id ? (tableMap.get(order.table_id) || 0) : 0
+    ])
   )
 
   // Transform data to match KitchenBarOrder interface
