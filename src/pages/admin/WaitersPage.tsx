@@ -19,6 +19,7 @@ import {
   updateWaiter,
   deleteWaiter
 } from '@/lib/waiterAuth'
+import { createWaiterInvite } from '@/lib/waiterAuthSimple'
 import type { WaiterUser } from '@/lib/types'
 import {
   Loader2,
@@ -38,6 +39,8 @@ export const WaitersPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null)
   const [showAddDialog, setShowAddDialog] = useState(false)
   const [showEditDialog, setShowEditDialog] = useState(false)
+  const [showInviteDialog, setShowInviteDialog] = useState(false)
+  const [inviteLink, setInviteLink] = useState('')
   const [selectedWaiter, setSelectedWaiter] = useState<WaiterUser | null>(null)
   const [processing, setProcessing] = useState(false)
 
@@ -165,6 +168,29 @@ export const WaitersPage: React.FC = () => {
     })
     setSelectedWaiter(null)
     setError(null)
+    setInviteLink('')
+  }
+
+  const handleCreateInvite = async () => {
+    if (!formData.name || !formData.email) {
+      setError('יש למלא שם ודוא"ל')
+      return
+    }
+
+    setProcessing(true)
+    setError(null)
+
+    try {
+      const result = await createWaiterInvite(formData.email, formData.name)
+      setInviteLink(result.inviteLink)
+      setShowAddDialog(false)
+      setShowInviteDialog(true)
+      await loadWaiters()
+    } catch (err: any) {
+      setError(err.message || 'שגיאה ביצירת הזמנה')
+    } finally {
+      setProcessing(false)
+    }
   }
 
   if (loading) {
@@ -338,7 +364,7 @@ export const WaitersPage: React.FC = () => {
             </div>
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="flex gap-2">
             <Button
               variant="outline"
               onClick={() => {
@@ -349,14 +375,61 @@ export const WaitersPage: React.FC = () => {
               ביטול
             </Button>
             <Button
+              variant="secondary"
+              onClick={handleCreateInvite}
+              disabled={processing || !formData.name || !formData.email}
+            >
+              צור קישור הזמנה
+            </Button>
+            <Button
               onClick={handleAddWaiter}
               disabled={processing}
             >
               {processing ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
-                'הוסף מלצר'
+                'צור ישירות (מתקדם)'
               )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Invite Link Dialog */}
+      <Dialog open={showInviteDialog} onOpenChange={setShowInviteDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>קישור הזמנה למלצר</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              שלח את הקישור הזה למלצר כדי שיוכל להירשם בעצמו:
+            </p>
+
+            <div className="p-3 bg-muted rounded-lg break-all">
+              <code className="text-xs" dir="ltr">{inviteLink}</code>
+            </div>
+
+            <Button
+              onClick={() => {
+                navigator.clipboard.writeText(inviteLink)
+                alert('הקישור הועתק!')
+              }}
+              className="w-full"
+            >
+              העתק קישור
+            </Button>
+          </div>
+
+          <DialogFooter>
+            <Button
+              onClick={() => {
+                setShowInviteDialog(false)
+                resetForm()
+              }}
+            >
+              סגור
             </Button>
           </DialogFooter>
         </DialogContent>

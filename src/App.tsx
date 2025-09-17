@@ -14,6 +14,7 @@ import { AddOnsPage } from '@/pages/admin/AddOnsPage'
 import { WaitersPage } from '@/pages/admin/WaitersPage'
 import { ProtectedRoute } from '@/components/admin/ProtectedRoute'
 import { WaiterLoginPage } from '@/pages/waiter/WaiterLoginPage'
+import { WaiterRegisterPage } from '@/pages/waiter/WaiterRegisterPage'
 import { TableSelectionPage } from '@/pages/waiter/TableSelectionPage'
 import { TableOrderPage } from '@/pages/waiter/TableOrderPage'
 import { BillPage } from '@/pages/waiter/BillPage'
@@ -122,6 +123,7 @@ function App() {
 
           {/* Waiter Routes - No Layout */}
           <Route path="/waiter/login" element={<WaiterLoginPage />} />
+          <Route path="/waiter/register" element={<WaiterRegisterPage />} />
           <Route
             path="/waiter/tables"
             element={
