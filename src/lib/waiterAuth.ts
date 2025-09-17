@@ -67,34 +67,63 @@ export async function getCurrentWaiter(): Promise<WaiterUser | null> {
 
 // Admin functions for managing waiters
 export async function createWaiter(email: string, name: string, password: string) {
-  // First create auth user
-  const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-    email,
-    password,
-    email_confirm: true
-  })
+  // Note: supabase.auth.admin requires service role key
+  // For client-side, we'll create the waiter record and let admin manually create auth user
 
-  if (authError) throw authError
+  try {
+    // Try to create auth user (will fail on client-side)
+    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true
+    })
 
-  // Then create waiter record
+    if (!authError && authData) {
+      // If successful, create waiter record
+      const { data: waiterData, error: waiterError } = await supabase
+        .from('waiter_users')
+        .insert({
+          email,
+          name,
+          password_hash: 'managed_by_supabase_auth',
+          is_active: true
+        })
+        .select()
+        .single()
+
+      if (waiterError) {
+        // Rollback auth user if waiter creation fails
+        await supabase.auth.admin.deleteUser(authData.user.id)
+        throw waiterError
+      }
+
+      return waiterData
+    }
+  } catch (error) {
+    // If admin API fails, just create the waiter record
+    // Admin will need to create auth user manually
+    console.log('Note: Auth user creation requires service role. Creating waiter record only.')
+  }
+
+  // Create waiter record without auth user
   const { data: waiterData, error: waiterError } = await supabase
     .from('waiter_users')
     .insert({
       email,
       name,
-      password_hash: 'managed_by_supabase_auth',
+      password_hash: 'pending_auth_creation',
       is_active: true
     })
     .select()
     .single()
 
-  if (waiterError) {
-    // Rollback auth user if waiter creation fails
-    await supabase.auth.admin.deleteUser(authData.user.id)
-    throw waiterError
-  }
+  if (waiterError) throw waiterError
 
-  return waiterData
+  // Return waiter data with a note
+  return {
+    ...waiterData,
+    note: 'Waiter record created. Please create auth user manually in Supabase Dashboard.'
+  }
 }
 
 export async function updateWaiter(id: string, updates: Partial<WaiterUser>) {

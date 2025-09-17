@@ -74,7 +74,13 @@ export const WaitersPage: React.FC = () => {
     setError(null)
 
     try {
-      await createWaiter(formData.email, formData.name, formData.password)
+      const result = await createWaiter(formData.email, formData.name, formData.password)
+
+      // Check if we need to manually create auth user
+      if (result.note) {
+        alert(`מלצר נוצר בהצלחה!\n\nחשוב: כדי שהמלצר יוכל להתחבר, צור עבורו משתמש ב-Supabase:\n1. לך ל-Authentication > Users\n2. לחץ Invite User\n3. הזן: ${formData.email}\n4. הגדר סיסמה: ${formData.password}`)
+      }
+
       await loadWaiters()
       setShowAddDialog(false)
       resetForm()
