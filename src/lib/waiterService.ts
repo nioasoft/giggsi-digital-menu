@@ -520,3 +520,66 @@ export async function getOrderLogsSummary() {
   if (error) throw error
   return data || []
 }
+
+// Waiter Management Functions (Admin)
+export async function getAllWaiters() {
+  const { data, error } = await supabase
+    .from('waiter_users')
+    .select('*')
+    .order('created_at', { ascending: false })
+
+  if (error) throw error
+  return data || []
+}
+
+export async function approveWaiter(waiterId: string) {
+  const { data, error } = await supabase
+    .from('waiter_users')
+    .update({ is_active: true })
+    .eq('id', waiterId)
+    .select()
+    .single()
+
+  if (error) throw error
+
+  // Also confirm email in auth if needed
+  const { data: waiterData } = await supabase
+    .from('waiter_users')
+    .select('email')
+    .eq('id', waiterId)
+    .single()
+
+  if (waiterData?.email) {
+    // Update auth user email confirmation
+    const { error: authError } = await supabase.rpc('confirm_user_email', {
+      user_email: waiterData.email
+    })
+
+    if (authError) {
+      console.error('Failed to confirm email in auth:', authError)
+    }
+  }
+
+  return data
+}
+
+export async function deactivateWaiter(waiterId: string) {
+  const { data, error } = await supabase
+    .from('waiter_users')
+    .update({ is_active: false })
+    .eq('id', waiterId)
+    .select()
+    .single()
+
+  if (error) throw error
+  return data
+}
+
+export async function deleteWaiter(waiterId: string) {
+  const { error } = await supabase
+    .from('waiter_users')
+    .delete()
+    .eq('id', waiterId)
+
+  if (error) throw error
+}

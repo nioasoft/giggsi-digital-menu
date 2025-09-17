@@ -15,10 +15,10 @@ import {
 } from '@/components/ui/dialog'
 import {
   getAllWaiters,
-  createWaiter,
-  updateWaiter,
+  approveWaiter,
+  deactivateWaiter,
   deleteWaiter
-} from '@/lib/waiterAuth'
+} from '@/lib/waiterService'
 import { createWaiterInvite } from '@/lib/waiterAuthSimple'
 import type { WaiterUser } from '@/lib/types'
 import {
@@ -29,7 +29,9 @@ import {
   Trash2,
   User,
   Check,
-  X
+  X,
+  Mail,
+  UserCheck
 } from 'lucide-react'
 
 export const WaitersPage: React.FC = () => {
@@ -38,11 +40,12 @@ export const WaitersPage: React.FC = () => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [showAddDialog, setShowAddDialog] = useState(false)
-  const [showEditDialog, setShowEditDialog] = useState(false)
   const [showInviteDialog, setShowInviteDialog] = useState(false)
   const [inviteLink, setInviteLink] = useState('')
   const [selectedWaiter, setSelectedWaiter] = useState<WaiterUser | null>(null)
   const [processing, setProcessing] = useState(false)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'inactive'>('all')
 
   // Form fields
   const [formData, setFormData] = useState({
@@ -67,36 +70,23 @@ export const WaitersPage: React.FC = () => {
     }
   }
 
-  const handleAddWaiter = async () => {
-    if (!formData.name || !formData.email || !formData.password) {
-      setError('יש למלא את כל השדות')
-      return
-    }
-
+  const handleApproveWaiter = async (waiter: WaiterUser) => {
     setProcessing(true)
     setError(null)
 
     try {
-      const result = await createWaiter(formData.email, formData.name, formData.password)
-
-      // Check if we need to manually create auth user
-      if (result.note) {
-        alert(`מלצר נוצר בהצלחה!\n\nחשוב: כדי שהמלצר יוכל להתחבר, צור עבורו משתמש ב-Supabase:\n1. לך ל-Authentication > Users\n2. לחץ Invite User\n3. הזן: ${formData.email}\n4. הגדר סיסמה: ${formData.password}`)
-      }
-
+      await approveWaiter(waiter.id)
       await loadWaiters()
-      setShowAddDialog(false)
-      resetForm()
+      alert('המלצר אושר בהצלחה!')
     } catch (err: any) {
-      setError(err.message || 'שגיאה ביצירת מלצר חדש')
+      setError(err.message || 'שגיאה באישור מלצר')
     } finally {
       setProcessing(false)
     }
   }
 
-  const handleUpdateWaiter = async () => {
-    if (!selectedWaiter || !formData.name || !formData.email) {
-      setError('יש למלא את כל השדות')
+  const handleDeactivateWaiter = async (waiter: WaiterUser) => {
+    if (!confirm(`האם אתה בטוח שברצונך לבטל את המלצר ${waiter.name}?`)) {
       return
     }
 
@@ -104,15 +94,10 @@ export const WaitersPage: React.FC = () => {
     setError(null)
 
     try {
-      await updateWaiter(selectedWaiter.id, {
-        name: formData.name,
-        email: formData.email
-      })
+      await deactivateWaiter(waiter.id)
       await loadWaiters()
-      setShowEditDialog(false)
-      resetForm()
     } catch (err: any) {
-      setError(err.message || 'שגיאה בעדכון מלצר')
+      setError(err.message || 'שגיאה בביטול מלצר')
     } finally {
       setProcessing(false)
     }
@@ -136,29 +121,6 @@ export const WaitersPage: React.FC = () => {
     }
   }
 
-  const handleToggleActive = async (waiter: WaiterUser) => {
-    setProcessing(true)
-    try {
-      await updateWaiter(waiter.id, {
-        is_active: !waiter.is_active
-      })
-      await loadWaiters()
-    } catch (err: any) {
-      setError(err.message || 'שגיאה בעדכון סטטוס מלצר')
-    } finally {
-      setProcessing(false)
-    }
-  }
-
-  const openEditDialog = (waiter: WaiterUser) => {
-    setSelectedWaiter(waiter)
-    setFormData({
-      name: waiter.name,
-      email: waiter.email,
-      password: ''
-    })
-    setShowEditDialog(true)
-  }
 
   const resetForm = () => {
     setFormData({
@@ -170,6 +132,20 @@ export const WaitersPage: React.FC = () => {
     setError(null)
     setInviteLink('')
   }
+
+  // Filter waiters based on search and status
+  const filteredWaiters = waiters.filter(waiter => {
+    const matchesSearch =
+      waiter.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      waiter.email.toLowerCase().includes(searchTerm.toLowerCase())
+
+    const matchesStatus =
+      filterStatus === 'all' ||
+      (filterStatus === 'active' && waiter.is_active) ||
+      (filterStatus === 'inactive' && !waiter.is_active)
+
+    return matchesSearch && matchesStatus
+  })
 
   const handleCreateInvite = async () => {
     if (!formData.name || !formData.email) {
@@ -242,22 +218,61 @@ export const WaitersPage: React.FC = () => {
           </Alert>
         )}
 
+        {/* Search and Filter Bar */}
+        <div className="mb-6 flex flex-col sm:flex-row gap-3">
+          <Input
+            placeholder="חפש לפי שם או אימייל..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="max-w-md"
+          />
+          <div className="flex gap-2">
+            <Button
+              variant={filterStatus === 'all' ? 'default' : 'outline'}
+              onClick={() => setFilterStatus('all')}
+              size="sm"
+            >
+              הכל ({waiters.length})
+            </Button>
+            <Button
+              variant={filterStatus === 'active' ? 'default' : 'outline'}
+              onClick={() => setFilterStatus('active')}
+              size="sm"
+            >
+              מאושרים ({waiters.filter(w => w.is_active).length})
+            </Button>
+            <Button
+              variant={filterStatus === 'inactive' ? 'default' : 'outline'}
+              onClick={() => setFilterStatus('inactive')}
+              size="sm"
+            >
+              ממתינים ({waiters.filter(w => !w.is_active).length})
+            </Button>
+          </div>
+        </div>
+
         <div className="grid gap-4">
-          {waiters.length === 0 ? (
+          {filteredWaiters.length === 0 ? (
             <Card>
               <CardContent className="py-8 text-center">
                 <User className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                <p className="text-muted-foreground">אין מלצרים במערכת</p>
-                <Button
-                  onClick={() => setShowAddDialog(true)}
-                  className="mt-4"
-                >
-                  הוסף מלצר ראשון
-                </Button>
+                <p className="text-muted-foreground">
+                  {waiters.length === 0
+                    ? 'אין מלצרים במערכת'
+                    : 'לא נמצאו מלצרים התואמים לחיפוש'}
+                </p>
+                {waiters.length === 0 && (
+                  <Button
+                    onClick={() => setShowAddDialog(true)}
+                    className="mt-4"
+                  >
+                    הוסף מלצר ראשון
+                  </Button>
+                )}
               </CardContent>
             </Card>
           ) : (
-            waiters.map((waiter) => (
+            filteredWaiters.map((waiter) => (
               <Card key={waiter.id}>
                 <CardContent className="py-4">
                   <div className="flex items-center justify-between">
@@ -266,43 +281,49 @@ export const WaitersPage: React.FC = () => {
                         <User className="h-6 w-6 text-giggsi-gold" />
                       </div>
                       <div>
-                        <h3 className="font-semibold">{waiter.name}</h3>
-                        <p className="text-sm text-muted-foreground">{waiter.email}</p>
-                        {waiter.last_login && (
-                          <p className="text-xs text-muted-foreground">
-                            כניסה אחרונה: {new Date(waiter.last_login).toLocaleDateString('he-IL')}
-                          </p>
-                        )}
+                        <h3 className="font-semibold text-lg">{waiter.name}</h3>
+                        <p className="text-sm text-muted-foreground font-mono">{waiter.email}</p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          נרשם: {new Date(waiter.created_at || Date.now()).toLocaleDateString('he-IL')}
+                          {waiter.last_login && (
+                            <span> • כניסה אחרונה: {new Date(waiter.last_login).toLocaleDateString('he-IL')}</span>
+                          )}
+                        </p>
                       </div>
                     </div>
 
                     <div className="flex items-center gap-2">
                       <Badge
-                        className={waiter.is_active ? 'bg-green-500' : 'bg-red-500'}
+                        className={waiter.is_active ? 'bg-green-500' : 'bg-orange-500'}
                       >
-                        {waiter.is_active ? 'פעיל' : 'לא פעיל'}
+                        {waiter.is_active ? 'מאושר' : 'ממתין לאישור'}
                       </Badge>
 
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        onClick={() => handleToggleActive(waiter)}
-                        disabled={processing}
-                      >
-                        {waiter.is_active ? (
-                          <X className="h-4 w-4" />
-                        ) : (
-                          <Check className="h-4 w-4" />
-                        )}
-                      </Button>
+                      {!waiter.is_active && (
+                        <Button
+                          size="sm"
+                          variant="default"
+                          onClick={() => handleApproveWaiter(waiter)}
+                          disabled={processing}
+                          className="gap-1 bg-green-600 hover:bg-green-700"
+                        >
+                          <UserCheck className="h-4 w-4" />
+                          אשר מלצר
+                        </Button>
+                      )}
 
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        onClick={() => openEditDialog(waiter)}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
+                      {waiter.is_active && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleDeactivateWaiter(waiter)}
+                          disabled={processing}
+                          className="gap-1"
+                        >
+                          <X className="h-4 w-4" />
+                          בטל
+                        </Button>
+                      )}
 
                       <Button
                         size="icon"
@@ -310,7 +331,7 @@ export const WaitersPage: React.FC = () => {
                         onClick={() => handleDeleteWaiter(waiter)}
                         disabled={processing}
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Trash2 className="h-4 w-4 text-red-500" />
                       </Button>
                     </div>
                   </div>
@@ -375,20 +396,13 @@ export const WaitersPage: React.FC = () => {
               ביטול
             </Button>
             <Button
-              variant="secondary"
               onClick={handleCreateInvite}
               disabled={processing || !formData.name || !formData.email}
-            >
-              צור קישור הזמנה
-            </Button>
-            <Button
-              onClick={handleAddWaiter}
-              disabled={processing}
             >
               {processing ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
-                'צור ישירות (מתקדם)'
+                'צור קישור הזמנה'
               )}
             </Button>
           </DialogFooter>
@@ -435,60 +449,6 @@ export const WaitersPage: React.FC = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Edit Waiter Dialog */}
-      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>ערוך מלצר</DialogTitle>
-          </DialogHeader>
-
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="edit-name">שם מלצר</Label>
-              <Input
-                id="edit-name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="ישראל ישראלי"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="edit-email">דוא"ל</Label>
-              <Input
-                id="edit-email"
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                placeholder="waiter@giggsi.com"
-                dir="ltr"
-              />
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setShowEditDialog(false)
-                resetForm()
-              }}
-            >
-              ביטול
-            </Button>
-            <Button
-              onClick={handleUpdateWaiter}
-              disabled={processing}
-            >
-              {processing ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                'עדכן מלצר'
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }
