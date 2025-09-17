@@ -1,7 +1,7 @@
 // Application configuration
 export const config = {
   // Production URL - change this to your actual domain
-  PRODUCTION_URL: 'https://giggsi-menu.vercel.app', // Update with your actual URL
+  PRODUCTION_URL: 'https://digitalmenu-giggsi.vercel.app', // Update with your actual URL
 
   // Get the current site URL based on environment
   getSiteUrl: () => {
