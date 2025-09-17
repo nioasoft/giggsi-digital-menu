@@ -46,15 +46,22 @@ export const KitchenDisplayPage: React.FC = () => {
     }
   }
 
-  const handleOrderReady = async (orderId: string) => {
-    console.log('handleOrderReady called for order:', orderId)
+  const handleOrderReady = async (batchKey: string) => {
+    console.log('handleOrderReady called for batch:', batchKey)
     try {
-      // Get all items for this order
-      const orderItems = orders.filter(o => o.order_id === orderId)
-      console.log('Found items for order:', orderItems)
+      // Extract orderId and batchNumber from batchKey
+      const [orderId, batchPart] = batchKey.split('_batch_')
+      const batchNumber = parseInt(batchPart)
+      console.log('Processing batch:', { orderId, batchNumber })
 
-      // Mark all as archived (not ready) so they disappear from view
-      for (const order of orderItems) {
+      // Get only items for this specific batch
+      const batchItems = orders.filter(o =>
+        o.order_id === orderId && o.batch_number === batchNumber
+      )
+      console.log('Found items for this batch:', batchItems)
+
+      // Mark all items in this batch as archived
+      for (const order of batchItems) {
         console.log('Updating order:', order.id, 'current status:', order.status)
         await updateKitchenItemStatus(order.id, 'archived')
         console.log('Order updated successfully:', order.id)
@@ -122,7 +129,7 @@ export const KitchenDisplayPage: React.FC = () => {
                 batchNumber={batchNumber}
                 tableNumber={tableNumber}
                 orders={items}
-                onOrderReady={() => handleOrderReady(orderId)}
+                onOrderReady={() => handleOrderReady(batchKey)}
               />
             ))}
         </div>
