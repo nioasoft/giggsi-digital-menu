@@ -33,6 +33,13 @@ export async function signUpWaiter(email: string, password: string, name: string
 
   if (waiterError) {
     console.error('Failed to create waiter record:', waiterError)
+    // Still return success but notify about the issue
+    return {
+      user: authData.user,
+      waiter: null,
+      message: 'נרשמת בהצלחה! אנא פנה למנהל לאישור הרשמתך.',
+      warning: 'הרשומה בטבלת המלצרים לא נוצרה - פנה למנהל'
+    }
   }
 
   return {

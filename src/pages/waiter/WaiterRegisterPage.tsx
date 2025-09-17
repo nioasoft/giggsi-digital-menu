@@ -51,7 +51,13 @@ export const WaiterRegisterPage: React.FC = () => {
         formData.name
       )
 
-      setSuccess(true)
+      // Check if there was a warning
+      if (result.warning) {
+        console.error('Registration warning:', result.warning)
+        setError(result.warning)
+      } else {
+        setSuccess(true)
+      }
 
       // Wait and redirect to login
       setTimeout(() => {
