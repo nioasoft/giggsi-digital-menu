@@ -54,6 +54,8 @@ export async function updateKitchenItemStatus(
   itemId: string,
   status: DisplayStatus
 ): Promise<void> {
+  console.log('updateKitchenItemStatus called:', { itemId, status })
+
   const updateData: any = {
     kitchen_status: status
   }
@@ -65,12 +67,27 @@ export async function updateKitchenItemStatus(
     updateData.kitchen_ready_at = new Date().toISOString()
   }
 
-  const { error } = await supabase
+  console.log('Update data to send:', updateData)
+
+  const { data, error, count } = await supabase
     .from('order_items')
     .update(updateData)
     .eq('id', itemId)
+    .select()
 
-  if (error) throw error
+  console.log('Supabase update result:', { data, error, count, affectedRows: data?.length || 0 })
+
+  if (error) {
+    console.error('Supabase update error:', error)
+    throw error
+  }
+
+  if (!data || data.length === 0) {
+    console.error('No rows were updated! Item ID might not exist:', itemId)
+    throw new Error(`No order item found with ID: ${itemId}`)
+  }
+
+  console.log('Successfully updated item:', data[0])
 }
 
 // Update bar item status
@@ -78,6 +95,8 @@ export async function updateBarItemStatus(
   itemId: string,
   status: DisplayStatus
 ): Promise<void> {
+  console.log('updateBarItemStatus called:', { itemId, status })
+
   const updateData: any = {
     bar_status: status
   }
@@ -89,12 +108,27 @@ export async function updateBarItemStatus(
     updateData.bar_ready_at = new Date().toISOString()
   }
 
-  const { error } = await supabase
+  console.log('Update data to send:', updateData)
+
+  const { data, error, count } = await supabase
     .from('order_items')
     .update(updateData)
     .eq('id', itemId)
+    .select()
 
-  if (error) throw error
+  console.log('Supabase update result:', { data, error, count, affectedRows: data?.length || 0 })
+
+  if (error) {
+    console.error('Supabase update error:', error)
+    throw error
+  }
+
+  if (!data || data.length === 0) {
+    console.error('No rows were updated! Item ID might not exist:', itemId)
+    throw new Error(`No order item found with ID: ${itemId}`)
+  }
+
+  console.log('Successfully updated item:', data[0])
 }
 
 // Mark kitchen order as ready
