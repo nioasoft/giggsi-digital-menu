@@ -94,16 +94,16 @@ export const TableSelectionPage: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center" dir="rtl">
         <Loader2 className="h-8 w-8 animate-spin text-giggsi-gold" />
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background" dir="rtl">
       {/* Header */}
-      <header className="border-b sticky top-0 bg-background z-10">
+      <header className="border-b sticky top-0 bg-background z-10 text-right">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <div className="flex items-center gap-3">
             <User className="h-5 w-5 text-giggsi-gold" />
@@ -128,7 +128,7 @@ export const TableSelectionPage: React.FC = () => {
       </header>
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-6">
+      <main className="container mx-auto px-4 py-6 text-right">
         {error && (
           <Alert variant="destructive" className="mb-6">
             <AlertDescription>{error}</AlertDescription>

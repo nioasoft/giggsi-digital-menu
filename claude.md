@@ -144,3 +144,48 @@ VITE_APP_ENV=                 # development | production
 - **Output Directory:** `dist`
 - **Node Version:** 18.x
 - **Environment Variables:** Set in Vercel dashboard
+
+## RTL and Localization Rules
+
+### Critical RTL Requirements
+- **ALL components must have `dir="rtl"` by default** - This is essential for Hebrew UI
+- **All pages must be right-aligned** - Use `text-right` class on main containers
+- **Hebrew is the primary language** - All UI elements default to RTL layout
+- **Component wrapper structure**:
+  ```tsx
+  <div dir="rtl" className="text-right">
+    <!-- All content here is RTL by default -->
+  </div>
+  ```
+
+### Input Field Exceptions
+- **Email/Password fields only** - These should be LTR within RTL context:
+  ```tsx
+  <Input
+    type="email"
+    dir="ltr"
+    className="text-left"
+  />
+  ```
+
+### Price Display Rules
+- **Customer bills (waiter system)**:
+  - Round UP to whole shekels: `Math.ceil(amount)`
+  - Display format: `₪50` (no decimals)
+  - Service charge: Always 12.5% before rounding
+- **Internal calculations**:
+  - Keep decimals for accuracy
+  - Round only for final display
+- **Example**:
+  ```tsx
+  // Bill display
+  const finalAmount = Math.ceil(order.total_amount)
+  return <span>₪{finalAmount}</span>
+  ```
+
+### Development Checklist
+- [ ] Every new page has `dir="rtl"` on root element
+- [ ] Every container has `text-right` class
+- [ ] Email/password inputs have `dir="ltr" className="text-left"`
+- [ ] Prices in bills are rounded up using `Math.ceil()`
+- [ ] No decimals shown in customer-facing prices

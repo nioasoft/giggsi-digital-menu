@@ -114,7 +114,7 @@ export const BillPage: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center" dir="rtl">
         <Loader2 className="h-8 w-8 animate-spin text-giggsi-gold" />
       </div>
     )
@@ -122,7 +122,7 @@ export const BillPage: React.FC = () => {
 
   if (!order) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center" dir="rtl">
         <Card>
           <CardContent className="py-8">
             <p className="text-destructive">{error || 'לא נמצאה הזמנה'}</p>
@@ -139,9 +139,9 @@ export const BillPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background print:bg-white">
+    <div className="min-h-screen bg-background print:bg-white" dir="rtl">
       {/* Header - Hide on print */}
-      <header className="border-b sticky top-0 bg-background z-10 print:hidden">
+      <header className="border-b sticky top-0 bg-background z-10 print:hidden text-right">
         <div className="container mx-auto px-4 py-3">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-3">
@@ -173,7 +173,7 @@ export const BillPage: React.FC = () => {
         </Alert>
       )}
 
-      <div className="container mx-auto px-4 py-6 max-w-2xl">
+      <div className="container mx-auto px-4 py-6 max-w-2xl text-right">
         {/* Bill Card */}
         <Card className="print:shadow-none">
           <CardHeader className="text-center border-b">
@@ -240,7 +240,7 @@ export const BillPage: React.FC = () => {
               </div>
               <div className="flex justify-between text-xl font-bold border-t pt-2">
                 <span>סה"כ לתשלום:</span>
-                <span className="text-giggsi-gold">₪{order.total_amount.toFixed(2)}</span>
+                <span className="text-giggsi-gold">₪{Math.ceil(order.total_amount)}</span>
               </div>
             </div>
 

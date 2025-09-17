@@ -70,8 +70,8 @@ export const WaiterRegisterPage: React.FC = () => {
 
   if (success) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background p-4">
-        <Card className="w-full max-w-md">
+      <div className="min-h-screen flex items-center justify-center bg-background p-4" dir="rtl">
+        <Card className="w-full max-w-md text-right">
           <CardContent className="py-8 text-center">
             <div className="mb-4">
               <div className="p-3 bg-green-500/10 rounded-full inline-block">
@@ -92,7 +92,7 @@ export const WaiterRegisterPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+    <div className="min-h-screen flex items-center justify-center bg-background p-4" dir="rtl">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
@@ -130,6 +130,7 @@ export const WaiterRegisterPage: React.FC = () => {
                 required
                 disabled={loading || !!searchParams.get('email')}
                 dir="ltr"
+                className="text-left"
               />
             </div>
 
@@ -144,6 +145,7 @@ export const WaiterRegisterPage: React.FC = () => {
                 required
                 disabled={loading}
                 dir="ltr"
+                className="text-left"
               />
             </div>
 
@@ -158,6 +160,7 @@ export const WaiterRegisterPage: React.FC = () => {
                 required
                 disabled={loading}
                 dir="ltr"
+                className="text-left"
               />
             </div>
 

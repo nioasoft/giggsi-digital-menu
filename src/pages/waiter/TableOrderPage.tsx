@@ -142,16 +142,16 @@ export const TableOrderPage: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center" dir="rtl">
         <Loader2 className="h-8 w-8 animate-spin text-giggsi-gold" />
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background" dir="rtl">
       {/* Header */}
-      <header className="border-b sticky top-0 bg-background z-10">
+      <header className="border-b sticky top-0 bg-background z-10 text-right">
         <div className="container mx-auto px-4 py-3">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-3">
@@ -184,7 +184,7 @@ export const TableOrderPage: React.FC = () => {
                     עגלה ({orderItems.length})
                     {order.total_amount > 0 && (
                       <Badge className="absolute -top-2 -right-2 bg-giggsi-gold">
-                        ₪{order.total_amount.toFixed(2)}
+                        ₪{Math.ceil(order.total_amount)}
                       </Badge>
                     )}
                   </Button>
@@ -208,7 +208,7 @@ export const TableOrderPage: React.FC = () => {
         </Alert>
       )}
 
-      <div className="container mx-auto px-4 py-4">
+      <div className="container mx-auto px-4 py-4 text-right">
         {!order ? (
           // No order - show create button
           <Card className="max-w-md mx-auto mt-8">
@@ -348,7 +348,7 @@ export const TableOrderPage: React.FC = () => {
                           <div className="flex justify-between font-bold text-lg">
                             <span>סה"כ לתשלום:</span>
                             <span className="text-giggsi-gold">
-                              ₪{order.total_amount.toFixed(2)}
+                              ₪{Math.ceil(order.total_amount)}
                             </span>
                           </div>
                         </div>
