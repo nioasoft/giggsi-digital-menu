@@ -1,15 +1,17 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { useTranslation } from 'react-i18next'
 import { formatPrice, getLocalizedContent } from '@/lib/utils'
+import { calculateItemPriceWithAddons, getAddonsPrice } from '@/lib/priceUtils'
 import { supabase } from '@/lib/supabase'
 import { Loader2, ChevronDown, ChevronUp, Plus, Minus } from 'lucide-react'
 import type { MenuItem } from '@/lib/types'
 
 interface AddOnWithGroup {
   id: string
+  group_id: string
   name_he: string
   name_en?: string
   name_ar?: string
@@ -17,6 +19,7 @@ interface AddOnWithGroup {
   price: number
   addon_type: string
   is_available: boolean
+  display_order: number
   group_name_he?: string
   group_name_en?: string
   group_name_ar?: string
@@ -174,6 +177,19 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({ item, open, on
     onClose()
   }
 
+  // Calculate total price with selected addons
+  const selectedAddOnItems = useMemo(() => {
+    return addOns.filter(addon => selectedAddOns.has(addon.id))
+  }, [addOns, selectedAddOns])
+
+  const totalAddonsPrice = useMemo(() => {
+    return getAddonsPrice(selectedAddOnItems as any[])
+  }, [selectedAddOnItems])
+
+  const totalPrice = useMemo(() => {
+    return calculateItemPriceWithAddons(item?.price || 0, selectedAddOnItems as any[], quantity)
+  }, [item?.price, selectedAddOnItems, quantity])
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" isRTL={isRTL}>
@@ -293,11 +309,34 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({ item, open, on
           )}
 
           {/* Price */}
-          <div className="pt-4 border-t">
-            <div className="flex items-center justify-between">
-              <span className="text-lg font-semibold">{t('common.price')}:</span>
+          <div className="pt-4 border-t space-y-2">
+            {/* Base Price */}
+            <div className="flex items-center justify-between text-sm">
+              <span>מחיר בסיס:</span>
+              <span>{formatPrice(item.price)}</span>
+            </div>
+
+            {/* Addons Price */}
+            {totalAddonsPrice > 0 && (
+              <div className="flex items-center justify-between text-sm">
+                <span>תוספות ({selectedAddOnItems.length}):</span>
+                <span className="text-giggsi-gold">+{formatPrice(totalAddonsPrice)}</span>
+              </div>
+            )}
+
+            {/* Quantity */}
+            {quantity > 1 && (
+              <div className="flex items-center justify-between text-sm">
+                <span>כמות:</span>
+                <span>× {quantity}</span>
+              </div>
+            )}
+
+            {/* Total Price */}
+            <div className="flex items-center justify-between pt-2 border-t">
+              <span className="text-lg font-semibold">סה"כ:</span>
               <span className="text-2xl font-bold text-giggsi-gold">
-                {formatPrice(item.price)}
+                {formatPrice(totalPrice)}
               </span>
             </div>
           </div>
@@ -341,7 +380,7 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({ item, open, on
                 onClick={handleAddToOrder}
                 className="bg-giggsi-gold hover:bg-giggsi-gold/90"
               >
-                הוסף להזמנה
+                הוסף להזמנה ({formatPrice(totalPrice)})
               </Button>
             )}
           </div>

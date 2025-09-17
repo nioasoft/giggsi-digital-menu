@@ -20,6 +20,7 @@ import {
   closeOrder,
   cancelOrder
 } from '@/lib/waiterService'
+import { formatAddonsDisplay, getAddonsPrice } from '@/lib/priceUtils'
 import type { OrderWithDetails } from '@/lib/waiterService'
 
 export const BillPage: React.FC = () => {
@@ -209,20 +210,28 @@ export const BillPage: React.FC = () => {
                           <p className="text-sm text-muted-foreground">{item.notes}</p>
                         )}
                         {item.addons && item.addons.length > 0 && (
-                          <p className="text-sm text-muted-foreground">
-                            תוספות: {item.addons.map(a => a.name_he).join(', ')}
-                          </p>
+                          <div className="text-sm text-muted-foreground mt-1">
+                            <p>תוספות:</p>
+                            <div className="mr-4 mt-0.5">
+                              {item.addons.map((addon, idx) => (
+                                <div key={idx} className="flex justify-between">
+                                  <span>• {addon.name_he || 'תוספת'}</span>
+                                  {addon.price > 0 && (
+                                    <span className="mr-8">+₪{addon.price.toFixed(2)}</span>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
                         )}
                       </div>
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="flex items-center gap-3">
-                      <span className="text-sm text-muted-foreground">
-                        {item.quantity} × ₪{item.unit_price.toFixed(2)}
-                      </span>
-                      <span className="font-medium">₪{item.total_price.toFixed(2)}</span>
+                    <div className="text-sm text-muted-foreground">
+                      {item.quantity} × ₪{item.unit_price.toFixed(2)}
                     </div>
+                    <div className="font-medium mt-1">₪{item.total_price.toFixed(2)}</div>
                   </div>
                 </div>
               ))}

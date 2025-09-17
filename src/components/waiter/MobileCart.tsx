@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge'
 import { ShoppingCart, X, Plus, Minus, Trash2, Receipt } from 'lucide-react'
 import type { Order, OrderItem } from '@/lib/types'
 import { cn } from '@/lib/utils'
+import { formatAddonsDisplay } from '@/lib/priceUtils'
 
 interface MobileCartProps {
   order: Order | null
@@ -85,7 +86,12 @@ export const MobileCart: React.FC<MobileCartProps> = ({
                       <p className="font-medium text-sm">
                         {item.menu_item?.name_he || 'פריט'}
                       </p>
-                      <p className="text-xs text-muted-foreground">
+                      {item.addons && item.addons.length > 0 && (
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {formatAddonsDisplay(item.addons, 'he', true)}
+                        </p>
+                      )}
+                      <p className="text-xs text-muted-foreground mt-1">
                         ₪{item.unit_price.toFixed(2)} ליחידה
                       </p>
                     </div>
@@ -200,7 +206,12 @@ export const DesktopCart: React.FC<{
                       <p className="font-medium">
                         {item.menu_item?.name_he || 'פריט'}
                       </p>
-                      <p className="text-sm text-muted-foreground">
+                      {item.addons && item.addons.length > 0 && (
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {formatAddonsDisplay(item.addons, 'he', true)}
+                        </p>
+                      )}
+                      <p className="text-sm text-muted-foreground mt-1">
                         ₪{item.unit_price.toFixed(2)} ליחידה
                       </p>
                     </div>

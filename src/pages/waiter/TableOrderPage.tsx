@@ -16,7 +16,8 @@ import {
 } from '@/lib/waiterService'
 import { getCurrentWaiter, signOutWaiter } from '@/lib/waiterAuth'
 import { MobileCart, DesktopCart } from '@/components/waiter/MobileCart'
-import type { Table, Order, OrderItem, MenuItem, WaiterUser } from '@/lib/types'
+import { ItemDetailModal } from '@/components/menu/ItemDetailModal'
+import type { Table, Order, OrderItem, MenuItem, WaiterUser, AddOn } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
 
@@ -34,6 +35,8 @@ export const TableOrderPage: React.FC = () => {
   const [categories, setCategories] = useState<any[]>([])
   const [menuItems, setMenuItems] = useState<MenuItem[]>([])
   const [allMenuItems, setAllMenuItems] = useState<MenuItem[]>([])
+  const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null)
+  const [itemModalOpen, setItemModalOpen] = useState(false)
 
   useEffect(() => {
     loadTableData()
@@ -135,7 +138,12 @@ export const TableOrderPage: React.FC = () => {
     navigate('/waiter/login')
   }
 
-  const handleAddToOrder = async (itemId: string) => {
+  const handleOpenItemModal = (item: MenuItem) => {
+    setSelectedItem(item)
+    setItemModalOpen(true)
+  }
+
+  const handleAddToOrder = async (item: MenuItem, quantity: number, addons?: AddOn[]) => {
     if (!order) {
       // Create order first if doesn't exist
       if (!table || !currentWaiter) return
@@ -145,8 +153,8 @@ export const TableOrderPage: React.FC = () => {
         setOrder(newOrder)
         setTable({ ...table, status: 'occupied', current_order_id: newOrder.id })
 
-        // Now add the item
-        await addItemToOrder(newOrder.id, itemId, 1)
+        // Now add the item with addons
+        await addItemToOrder(newOrder.id, item.id, quantity, '', addons)
         await loadOrderItems()
         // Reload order to get updated totals
         const updatedOrder = await getOpenOrderByTable(table.id)
@@ -157,7 +165,7 @@ export const TableOrderPage: React.FC = () => {
     } else {
       // Add to existing order
       try {
-        await addItemToOrder(order.id, itemId, 1)
+        await addItemToOrder(order.id, item.id, quantity, '', addons)
         await loadOrderItems()
         // Reload order to get updated totals
         if (table) {
@@ -168,6 +176,10 @@ export const TableOrderPage: React.FC = () => {
         setError(err.message || 'שגיאה בהוספת פריט')
       }
     }
+
+    // Close modal after adding
+    setItemModalOpen(false)
+    setSelectedItem(null)
   }
 
   const handleUpdateQuantity = async (itemId: string, newQuantity: number) => {
@@ -324,11 +336,11 @@ export const TableOrderPage: React.FC = () => {
                                 className="mt-2 h-9 px-4"
                                 onClick={(e) => {
                                   e.stopPropagation()
-                                  handleAddToOrder(item.id)
+                                  handleOpenItemModal(item)
                                 }}
                               >
                                 <Plus className="h-4 w-4 ml-1" />
-                                הוסף
+                                בחר
                               </Button>
                             </div>
                           </div>
@@ -360,6 +372,17 @@ export const TableOrderPage: React.FC = () => {
         onUpdateQuantity={handleUpdateQuantity}
         onRemoveItem={handleRemoveFromOrder}
         onNavigateToBill={handleNavigateToBill}
+      />
+
+      {/* Item Detail Modal for adding with addons */}
+      <ItemDetailModal
+        item={selectedItem}
+        open={itemModalOpen}
+        onClose={() => {
+          setItemModalOpen(false)
+          setSelectedItem(null)
+        }}
+        onAddToOrder={handleAddToOrder}
       />
     </div>
   )
