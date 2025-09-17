@@ -30,7 +30,7 @@ LEFT JOIN waiter_users wu ON o.waiter_id = wu.id
 WHERE c.station_type = 'kitchen'
   AND o.status = 'open'
   AND oi.sent_to_kitchen = TRUE
-  AND (oi.kitchen_status IS NULL OR oi.kitchen_status NOT IN ('ready', 'archived'));  -- Exclude completed items
+  AND COALESCE(oi.kitchen_status, 'pending') IN ('pending', 'in_progress');  -- Only show pending and in_progress items
 
 -- Recreate bar_orders view with addons and proper filtering
 CREATE OR REPLACE VIEW bar_orders AS
@@ -60,7 +60,7 @@ LEFT JOIN waiter_users wu ON o.waiter_id = wu.id
 WHERE c.station_type = 'bar'
   AND o.status = 'open'
   AND oi.sent_to_kitchen = TRUE
-  AND (oi.bar_status IS NULL OR oi.bar_status NOT IN ('ready', 'archived'));  -- Exclude completed items
+  AND COALESCE(oi.bar_status, 'pending') IN ('pending', 'in_progress');  -- Only show pending and in_progress items
 
 -- Grant access to views
 GRANT SELECT ON kitchen_orders TO anon;
