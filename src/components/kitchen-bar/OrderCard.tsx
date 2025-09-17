@@ -64,9 +64,6 @@ export const OrderCard: React.FC<OrderCardProps> = ({
 
       <CardContent className="space-y-1.5">
         {orders.map((order) => {
-          // Debug logging
-          console.log('Order item:', order.item_name, 'Cooking preference:', order.cooking_preference)
-
           return (
             <div
               key={order.id}

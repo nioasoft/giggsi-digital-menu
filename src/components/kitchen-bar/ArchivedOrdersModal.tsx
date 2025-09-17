@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Loader2, Clock, X } from 'lucide-react'
@@ -53,6 +53,9 @@ export const ArchivedOrdersModal: React.FC<ArchivedOrdersModalProps> = ({ open, 
               <X className="h-5 w-5" />
             </Button>
           </DialogTitle>
+          <DialogDescription className="sr-only">
+            רשימת הזמנות שהושלמו ב-24 השעות האחרונות
+          </DialogDescription>
         </DialogHeader>
 
         <div className="overflow-y-auto max-h-[calc(80vh-8rem)] p-4">

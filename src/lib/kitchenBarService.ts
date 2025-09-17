@@ -40,7 +40,8 @@ export async function getArchivedKitchenOrders(): Promise<KitchenBarOrder[]> {
   const twentyFourHoursAgo = new Date()
   twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24)
 
-  const { data, error } = await supabase
+  // First get the archived items with basic info
+  const { data: items, error: itemsError } = await supabase
     .from('order_items')
     .select(`
       id,
@@ -53,23 +54,47 @@ export async function getArchivedKitchenOrders(): Promise<KitchenBarOrder[]> {
       sent_to_kitchen_at,
       created_at,
       kitchen_ready_at,
-      menu_items!inner(name_he),
-      orders!inner(
-        tables!inner(table_number)
-      )
+      menu_items!inner(name_he)
     `)
     .eq('kitchen_status', 'archived')
     .gte('kitchen_ready_at', twentyFourHoursAgo.toISOString())
     .order('kitchen_ready_at', { ascending: false })
     .limit(100)
 
-  if (error) {
-    console.error('Error fetching archived orders:', error)
-    throw error
+  if (itemsError) {
+    console.error('Error fetching archived orders:', itemsError)
+    throw itemsError
   }
 
+  if (!items || items.length === 0) {
+    return []
+  }
+
+  // Get unique order IDs
+  const orderIds = [...new Set(items.map(item => item.order_id))]
+
+  // Fetch orders with table info
+  const { data: orders, error: ordersError } = await supabase
+    .from('orders')
+    .select(`
+      id,
+      table_id,
+      tables!inner(table_number)
+    `)
+    .in('id', orderIds)
+
+  if (ordersError) {
+    console.error('Error fetching order details:', ordersError)
+    throw ordersError
+  }
+
+  // Create a map of order_id to table_number
+  const orderTableMap = new Map(
+    orders?.map((order: any) => [order.id, order.tables?.table_number || 0]) || []
+  )
+
   // Transform data to match KitchenBarOrder interface
-  const transformedData = (data || []).map((item: any) => ({
+  const transformedData = items.map((item: any) => ({
     id: item.id,
     order_id: item.order_id,
     quantity: item.quantity,
@@ -84,7 +109,7 @@ export async function getArchivedKitchenOrders(): Promise<KitchenBarOrder[]> {
     ready_at: item.kitchen_ready_at,
     item_name: item.menu_items?.name_he || '',
     item_name_en: '',
-    table_number: item.orders?.tables?.table_number || 0,
+    table_number: orderTableMap.get(item.order_id) || 0,
     waiter_name: null
   }))
 
