@@ -1,25 +1,24 @@
 import React, { useState, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, Link } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Loader2, ArrowLeft, ShoppingCart, Receipt, Plus, Minus, Trash2 } from 'lucide-react'
+import { Loader2, ArrowRight, ShoppingCart, Receipt, Plus, Minus, Trash2, LogOut } from 'lucide-react'
 import {
   getTableByNumber,
   getOpenOrderByTable,
   createOrder,
   getOrderItems,
   updateOrderItem,
-  removeOrderItem
+  removeOrderItem,
+  addItemToOrder
 } from '@/lib/waiterService'
-import { getCurrentWaiter } from '@/lib/waiterAuth'
-import { useMenuCategories, useMenuItems } from '@/hooks/useMenu'
+import { getCurrentWaiter, signOutWaiter } from '@/lib/waiterAuth'
+import { MobileCart, DesktopCart } from '@/components/waiter/MobileCart'
 import type { Table, Order, OrderItem, MenuItem, WaiterUser } from '@/lib/types'
-import { MenuCard } from '@/components/menu/MenuCard'
-import { CategoryTabs } from '@/components/menu/CategoryTabs'
-import { ItemDetailModal } from '@/components/menu/ItemDetailModal'
 import { cn } from '@/lib/utils'
+import { supabase } from '@/lib/supabase'
 
 export const TableOrderPage: React.FC = () => {
   const { tableNumber } = useParams<{ tableNumber: string }>()
@@ -31,16 +30,14 @@ export const TableOrderPage: React.FC = () => {
   const [currentWaiter, setCurrentWaiter] = useState<WaiterUser | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null)
-  const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null)
-  const [detailModalOpen, setDetailModalOpen] = useState(false)
-  const [showCart, setShowCart] = useState(false)
-
-  const { data: categories } = useMenuCategories()
-  const { data: menuItems } = useMenuItems(selectedCategoryId || undefined)
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
+  const [categories, setCategories] = useState<any[]>([])
+  const [menuItems, setMenuItems] = useState<MenuItem[]>([])
+  const [allMenuItems, setAllMenuItems] = useState<MenuItem[]>([])
 
   useEffect(() => {
     loadTableData()
+    loadMenuData()
   }, [tableNumber])
 
   useEffect(() => {
@@ -48,6 +45,44 @@ export const TableOrderPage: React.FC = () => {
       loadOrderItems()
     }
   }, [order])
+
+  useEffect(() => {
+    if (selectedCategory) {
+      setMenuItems(allMenuItems.filter(item => item.category_id === selectedCategory))
+    }
+  }, [selectedCategory, allMenuItems])
+
+  const loadMenuData = async () => {
+    try {
+      // Load categories
+      const { data: categoriesData, error: catError } = await supabase
+        .from('categories')
+        .select('*')
+        .eq('is_active', true)
+        .order('display_order')
+
+      if (catError) throw catError
+      setCategories(categoriesData || [])
+
+      // Load all menu items
+      const { data: itemsData, error: itemsError } = await supabase
+        .from('menu_items')
+        .select('*')
+        .eq('is_available', true)
+        .order('display_order')
+
+      if (itemsError) throw itemsError
+      setAllMenuItems(itemsData || [])
+
+      // Set first category as selected by default
+      if (categoriesData && categoriesData.length > 0) {
+        setSelectedCategory(categoriesData[0].id)
+        setMenuItems(itemsData?.filter(item => item.category_id === categoriesData[0].id) || [])
+      }
+    } catch (err) {
+      console.error('Failed to load menu data:', err)
+    }
+  }
 
   const loadTableData = async () => {
     if (!tableNumber) return
@@ -95,48 +130,80 @@ export const TableOrderPage: React.FC = () => {
     }
   }
 
-  const handleCreateOrder = async () => {
-    if (!table || !currentWaiter) return
+  const handleLogout = async () => {
+    await signOutWaiter()
+    navigate('/waiter/login')
+  }
 
-    setLoading(true)
-    try {
-      const newOrder = await createOrder(table.id, currentWaiter.id)
-      setOrder(newOrder)
-      setOrderItems([])
-      setTable({ ...table, status: 'occupied', current_order_id: newOrder.id })
-    } catch (err: any) {
-      setError(err.message || 'שגיאה ביצירת הזמנה')
-    } finally {
-      setLoading(false)
+  const handleAddToOrder = async (itemId: string) => {
+    if (!order) {
+      // Create order first if doesn't exist
+      if (!table || !currentWaiter) return
+
+      try {
+        const newOrder = await createOrder(table.id, currentWaiter.id)
+        setOrder(newOrder)
+        setTable({ ...table, status: 'occupied', current_order_id: newOrder.id })
+
+        // Now add the item
+        await addItemToOrder(newOrder.id, itemId, 1)
+        await loadOrderItems()
+        // Reload order to get updated totals
+        const updatedOrder = await getOpenOrderByTable(table.id)
+        if (updatedOrder) setOrder(updatedOrder)
+      } catch (err: any) {
+        setError(err.message || 'שגיאה בהוספת פריט')
+      }
+    } else {
+      // Add to existing order
+      try {
+        await addItemToOrder(order.id, itemId, 1)
+        await loadOrderItems()
+        // Reload order to get updated totals
+        if (table) {
+          const updatedOrder = await getOpenOrderByTable(table.id)
+          if (updatedOrder) setOrder(updatedOrder)
+        }
+      } catch (err: any) {
+        setError(err.message || 'שגיאה בהוספת פריט')
+      }
     }
   }
 
   const handleUpdateQuantity = async (itemId: string, newQuantity: number) => {
     if (newQuantity === 0) {
-      await handleRemoveItem(itemId)
+      await handleRemoveFromOrder(itemId)
       return
     }
 
     try {
       await updateOrderItem(itemId, newQuantity)
       await loadOrderItems()
-      await loadTableData() // Refresh order totals
+      // Reload order to get updated totals
+      if (table) {
+        const updatedOrder = await getOpenOrderByTable(table.id)
+        if (updatedOrder) setOrder(updatedOrder)
+      }
     } catch (err: any) {
       setError(err.message || 'שגיאה בעדכון כמות')
     }
   }
 
-  const handleRemoveItem = async (itemId: string) => {
+  const handleRemoveFromOrder = async (itemId: string) => {
     try {
       await removeOrderItem(itemId)
       await loadOrderItems()
-      await loadTableData() // Refresh order totals
+      // Reload order to get updated totals
+      if (table) {
+        const updatedOrder = await getOpenOrderByTable(table.id)
+        if (updatedOrder) setOrder(updatedOrder)
+      }
     } catch (err: any) {
       setError(err.message || 'שגיאה במחיקת פריט')
     }
   }
 
-  const navigateToBill = () => {
+  const handleNavigateToBill = () => {
     navigate(`/waiter/table/${tableNumber}/bill`)
   }
 
@@ -149,58 +216,46 @@ export const TableOrderPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background" dir="rtl">
-      {/* Header */}
-      <header className="border-b sticky top-0 bg-background z-10 text-right">
-        <div className="container mx-auto px-4 py-3">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-3">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => navigate('/waiter/tables')}
-              >
-                <ArrowLeft className="h-5 w-5" />
+    <div dir="rtl" className="min-h-screen bg-background pb-20 lg:pb-0">
+      {/* Sticky Header */}
+      <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-sm border-b">
+        <div className="flex items-center justify-between p-4">
+          <div className="flex items-center gap-2">
+            <Link to="/waiter/tables">
+              <Button variant="ghost" size="icon">
+                <ArrowRight className="h-5 w-5" />
               </Button>
-              <div>
-                <h1 className="text-xl font-bold">שולחן {tableNumber}</h1>
-                {currentWaiter && (
-                  <p className="text-sm text-muted-foreground">
-                    {currentWaiter.name}
-                  </p>
-                )}
-              </div>
-            </div>
-
-            <div className="flex gap-2">
-              {order && orderItems.length > 0 && (
-                <>
-                  <Button
-                    variant="outline"
-                    onClick={() => setShowCart(!showCart)}
-                    className="relative"
-                  >
-                    <ShoppingCart className="h-4 w-4 ml-2" />
-                    עגלה ({orderItems.length})
-                    {order.total_amount > 0 && (
-                      <Badge className="absolute -top-2 -right-2 bg-giggsi-gold">
-                        ₪{Math.ceil(order.total_amount)}
-                      </Badge>
-                    )}
-                  </Button>
-                  <Button
-                    onClick={navigateToBill}
-                    className="gap-2"
-                  >
-                    <Receipt className="h-4 w-4" />
-                    חשבון
-                  </Button>
-                </>
-              )}
+            </Link>
+            <div>
+              <h1 className="text-xl font-bold">שולחן {table?.table_number}</h1>
+              <p className="text-sm text-muted-foreground">הוספת פריטים להזמנה</p>
             </div>
           </div>
+          <div className="flex items-center gap-2 lg:hidden">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleLogout}
+            >
+              <LogOut className="h-5 w-5" />
+            </Button>
+          </div>
+          <div className="hidden lg:flex items-center gap-2">
+            {order && orderItems.length > 0 && (
+              <Badge className="bg-giggsi-gold text-white">
+                {orderItems.reduce((sum, item) => sum + item.quantity, 0)} פריטים
+              </Badge>
+            )}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleLogout}
+            >
+              <LogOut className="h-5 w-5" />
+            </Button>
+          </div>
         </div>
-      </header>
+      </div>
 
       {error && (
         <Alert variant="destructive" className="m-4">
@@ -208,191 +263,103 @@ export const TableOrderPage: React.FC = () => {
         </Alert>
       )}
 
-      <div className="container mx-auto px-4 py-4 text-right">
-        {!order ? (
-          // No order - show create button
-          <Card className="max-w-md mx-auto mt-8">
-            <CardHeader>
-              <CardTitle>פתיחת הזמנה חדשה</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground mb-4">
-                השולחן פנוי. לחץ כדי לפתוח הזמנה חדשה
-              </p>
-              <Button
-                onClick={handleCreateOrder}
-                className="w-full"
-                disabled={loading}
-              >
-                {loading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  'פתח הזמנה חדשה'
-                )}
-              </Button>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="grid lg:grid-cols-3 gap-4">
-            {/* Menu Section */}
-            <div className={cn(
-              "lg:col-span-2",
-              showCart && "hidden lg:block"
-            )}>
-              {/* Category Tabs */}
-              {categories && (
-                <CategoryTabs
-                  categories={categories}
-                  selectedCategoryId={selectedCategoryId || ''}
-                  onCategorySelect={setSelectedCategoryId}
-                />
-              )}
-
-              {/* Menu Items */}
-              {selectedCategoryId && (
-                <div className="space-y-3 mt-4">
-                  {menuItems?.map((item) => (
-                    <MenuCard
-                      key={item.id}
-                      item={item}
-                      onClick={() => {
-                        setSelectedItem(item)
-                        setDetailModalOpen(true)
-                      }}
-                    />
-                  ))}
-                </div>
-              )}
-
-              {!selectedCategoryId && (
-                <Card>
-                  <CardContent className="py-8 text-center">
-                    <p className="text-muted-foreground">
-                      בחר קטגוריה כדי להתחיל להוסיף פריטים להזמנה
+      <div className="container mx-auto p-4">
+        <div className="grid lg:grid-cols-3 gap-6">
+          {/* Menu Categories and Items */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Categories Grid - Optimized for mobile */}
+            <div>
+              <h2 className="text-lg font-semibold mb-3">קטגוריות</h2>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3">
+                {categories.map((category) => (
+                  <button
+                    key={category.id}
+                    onClick={() => setSelectedCategory(category.id)}
+                    className={cn(
+                      "p-3 sm:p-4 rounded-lg border transition-colors text-right min-h-[80px]",
+                      selectedCategory === category.id
+                        ? "bg-giggsi-gold text-white border-giggsi-gold"
+                        : "bg-card hover:bg-accent active:bg-accent"
+                    )}
+                  >
+                    <h3 className="font-medium text-sm sm:text-base">{category.name_he}</h3>
+                    <p className="text-xs sm:text-sm opacity-80 mt-1">
+                      {allMenuItems.filter(item => item.category_id === category.id).length} פריטים
                     </p>
-                  </CardContent>
-                </Card>
-              )}
+                  </button>
+                ))}
+              </div>
             </div>
 
-            {/* Cart Section */}
-            {(showCart || window.innerWidth >= 1024) && (
-              <div className="lg:col-span-1">
-                <Card className="sticky top-20">
-                  <CardHeader>
-                    <CardTitle className="flex justify-between">
-                      <span>הזמנה נוכחית</span>
-                      <Badge>{orderItems.length} פריטים</Badge>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {orderItems.length === 0 ? (
-                      <p className="text-center text-muted-foreground py-8">
-                        העגלה ריקה
-                      </p>
-                    ) : (
-                      <div className="space-y-3">
-                        {orderItems.map((item) => (
-                          <div key={item.id} className="border rounded-lg p-3">
-                            <div className="flex justify-between items-start mb-2">
-                              <div className="flex-1">
-                                <p className="font-medium">
-                                  {item.menu_item?.name_he || 'פריט'}
+            {/* Menu Items - Mobile optimized */}
+            {selectedCategory && (
+              <div>
+                <h2 className="text-lg font-semibold mb-3">
+                  {categories.find(c => c.id === selectedCategory)?.name_he}
+                </h2>
+                <div className="grid grid-cols-1 gap-3">
+                  {menuItems
+                    .filter(item => item.is_available !== false)
+                    .map((item) => (
+                      <Card
+                        key={item.id}
+                        className="active:scale-[0.98] transition-transform"
+                      >
+                        <CardContent className="p-3 sm:p-4">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <h3 className="font-semibold text-right text-sm sm:text-base">{item.name_he}</h3>
+                              {item.description_he && (
+                                <p className="text-xs sm:text-sm text-muted-foreground mt-1 text-right line-clamp-2">
+                                  {item.description_he}
                                 </p>
-                                <p className="text-sm text-muted-foreground">
-                                  ₪{item.unit_price.toFixed(2)} ליחידה
-                                </p>
-                              </div>
+                              )}
+                            </div>
+                            <div className="flex flex-col items-end mr-3 sm:mr-4">
+                              <span className="text-base sm:text-lg font-bold text-giggsi-gold">
+                                ₪{item.price.toFixed(2)}
+                              </span>
                               <Button
-                                size="icon"
-                                variant="ghost"
-                                onClick={() => handleRemoveItem(item.id)}
+                                size="sm"
+                                className="mt-2 h-9 px-4"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleAddToOrder(item.id)
+                                }}
                               >
-                                <Trash2 className="h-4 w-4" />
+                                <Plus className="h-4 w-4 ml-1" />
+                                הוסף
                               </Button>
                             </div>
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-2">
-                                <Button
-                                  size="icon"
-                                  variant="outline"
-                                  onClick={() => handleUpdateQuantity(item.id, item.quantity - 1)}
-                                >
-                                  <Minus className="h-3 w-3" />
-                                </Button>
-                                <span className="w-8 text-center">{item.quantity}</span>
-                                <Button
-                                  size="icon"
-                                  variant="outline"
-                                  onClick={() => handleUpdateQuantity(item.id, item.quantity + 1)}
-                                >
-                                  <Plus className="h-3 w-3" />
-                                </Button>
-                              </div>
-                              <span className="font-semibold">
-                                ₪{item.total_price.toFixed(2)}
-                              </span>
-                            </div>
                           </div>
-                        ))}
-
-                        <div className="border-t pt-3 space-y-2">
-                          <div className="flex justify-between">
-                            <span>סכום ביניים:</span>
-                            <span>₪{order.subtotal.toFixed(2)}</span>
-                          </div>
-                          <div className="flex justify-between text-sm">
-                            <span>שירות (12.5%):</span>
-                            <span>₪{order.service_charge.toFixed(2)}</span>
-                          </div>
-                          <div className="flex justify-between font-bold text-lg">
-                            <span>סה"כ לתשלום:</span>
-                            <span className="text-giggsi-gold">
-                              ₪{Math.ceil(order.total_amount)}
-                            </span>
-                          </div>
-                        </div>
-
-                        <Button
-                          onClick={navigateToBill}
-                          className="w-full mt-4"
-                        >
-                          <Receipt className="h-4 w-4 ml-2" />
-                          עבור לחשבון
-                        </Button>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
+                        </CardContent>
+                      </Card>
+                    ))}
+                </div>
               </div>
             )}
           </div>
-        )}
+
+          {/* Desktop Order Summary Sidebar - Hidden on mobile */}
+          <div className="hidden lg:block lg:col-span-1">
+            <DesktopCart
+              order={order}
+              orderItems={orderItems}
+              onUpdateQuantity={handleUpdateQuantity}
+              onRemoveItem={handleRemoveFromOrder}
+              onNavigateToBill={handleNavigateToBill}
+            />
+          </div>
+        </div>
       </div>
 
-      {/* Item Detail Modal for adding to order */}
-      <ItemDetailModal
-        item={selectedItem}
-        open={detailModalOpen}
-        onClose={() => {
-          setDetailModalOpen(false)
-          setSelectedItem(null)
-        }}
-        // Add custom handler for waiter to add to order
-        onAddToOrder={async (item, quantity, addons) => {
-          if (!order) return
-
-          try {
-            const { addItemToOrder } = await import('@/lib/waiterService')
-            await addItemToOrder(order.id, item.id, quantity, '', addons)
-            await loadOrderItems()
-            await loadTableData()
-            setDetailModalOpen(false)
-            setSelectedItem(null)
-          } catch (err: any) {
-            setError(err.message || 'שגיאה בהוספת פריט')
-          }
-        }}
+      {/* Mobile Cart - Fixed at bottom */}
+      <MobileCart
+        order={order}
+        orderItems={orderItems}
+        onUpdateQuantity={handleUpdateQuantity}
+        onRemoveItem={handleRemoveFromOrder}
+        onNavigateToBill={handleNavigateToBill}
       />
     </div>
   )

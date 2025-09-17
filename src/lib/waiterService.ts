@@ -312,8 +312,8 @@ export async function getOrderWithDetails(orderId: string): Promise<OrderWithDet
     .from('orders')
     .select(`
       *,
-      table:tables(*),
-      waiter:waiter_users(name)
+      table:table_id(*),
+      waiter:waiter_id(name)
     `)
     .eq('id', orderId)
     .single()
