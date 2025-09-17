@@ -6,8 +6,10 @@ export interface KitchenBarOrder {
   order_id: string
   quantity: number
   notes: string | null
+  addons: any[] | null  // Array of addon objects from the view
   status: DisplayStatus
   created_at: string
+  sent_to_kitchen_at: string | null  // Exact time when sent to kitchen
   started_at: string | null
   ready_at: string | null
   item_name: string

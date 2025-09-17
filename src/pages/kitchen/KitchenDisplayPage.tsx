@@ -51,9 +51,9 @@ export const KitchenDisplayPage: React.FC = () => {
       // Get all orders for this table
       const tableOrders = orders.filter(o => o.table_number === tableNumber)
 
-      // Mark all as archived (ready)
+      // Mark all as ready
       for (const order of tableOrders) {
-        await updateKitchenItemStatus(order.id, 'archived')
+        await updateKitchenItemStatus(order.id, 'ready')
       }
 
       // Reload orders to refresh display

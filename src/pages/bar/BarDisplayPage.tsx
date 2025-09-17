@@ -51,9 +51,9 @@ export const BarDisplayPage: React.FC = () => {
       // Get all orders for this table
       const tableOrders = orders.filter(o => o.table_number === tableNumber)
 
-      // Mark all as archived (ready)
+      // Mark all as ready
       for (const order of tableOrders) {
-        await updateBarItemStatus(order.id, 'archived')
+        await updateBarItemStatus(order.id, 'ready')
       }
 
       // Reload orders to refresh display
