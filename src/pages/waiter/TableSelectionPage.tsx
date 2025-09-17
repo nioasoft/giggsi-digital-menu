@@ -98,6 +98,9 @@ export const TableSelectionPage: React.FC = () => {
     'אזור 400': tables.filter(t => t.table_number >= 400 && t.table_number <= 404),
     'אזור 500': tables.filter(t => t.table_number >= 500 && t.table_number <= 504),
     'אזור VIP': tables.filter(t => t.table_number === 512 || t.table_number === 513),
+    'אזור 600': tables.filter(t => t.table_number >= 600 && t.table_number <= 604),
+    'אזור 700': tables.filter(t => t.table_number >= 700 && t.table_number <= 704),
+    'אזור 800': tables.filter(t => t.table_number === 800 || t.table_number === 804 || t.table_number === 812 || t.table_number === 813),
     'אזור מרפסת (900-920)': tables.filter(t => t.table_number >= 900 && t.table_number <= 920)
   }
 
