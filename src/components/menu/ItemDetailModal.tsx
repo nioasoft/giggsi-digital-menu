@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge'
 import { useTranslation } from 'react-i18next'
 import { formatPrice, getLocalizedContent } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
-import { Loader2, ChevronDown, ChevronUp } from 'lucide-react'
+import { Loader2, ChevronDown, ChevronUp, Plus, Minus } from 'lucide-react'
 import type { MenuItem } from '@/lib/types'
 
 interface AddOnWithGroup {
@@ -27,18 +27,23 @@ interface ItemDetailModalProps {
   item: MenuItem | null
   open: boolean
   onClose: () => void
+  onAddToOrder?: (item: MenuItem, quantity: number, addons?: any[]) => void
 }
 
-export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({ item, open, onClose }) => {
+export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({ item, open, onClose, onAddToOrder }) => {
   const { t, i18n } = useTranslation()
   const isRTL = i18n.language === 'he' || i18n.language === 'ar'
   const [addOns, setAddOns] = useState<AddOnWithGroup[]>([])
   const [loading, setLoading] = useState(false)
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set())
+  const [quantity, setQuantity] = useState(1)
+  const [selectedAddOns, setSelectedAddOns] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     if (item) {
       loadAddOns()
+      setQuantity(1)
+      setSelectedAddOns(new Set())
     }
   }, [item])
 
@@ -149,6 +154,26 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({ item, open, on
     })
   }
 
+  const toggleAddOn = (addOnId: string) => {
+    setSelectedAddOns(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(addOnId)) {
+        newSet.delete(addOnId)
+      } else {
+        newSet.add(addOnId)
+      }
+      return newSet
+    })
+  }
+
+  const handleAddToOrder = () => {
+    if (!item || !onAddToOrder) return
+
+    const selectedAddOnItems = addOns.filter(addon => selectedAddOns.has(addon.id))
+    onAddToOrder(item, quantity, selectedAddOnItems)
+    onClose()
+  }
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" isRTL={isRTL}>
@@ -235,13 +260,23 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({ item, open, on
                       {groupAddOns.map((addOn) => {
                         const addOnContent = getLocalizedContent(addOn, i18n.language)
                         return (
-                          <div 
-                            key={addOn.id} 
-                            className="flex items-center justify-between p-2 rounded bg-accent/20"
+                          <div
+                            key={addOn.id}
+                            className="flex items-center justify-between p-2 rounded bg-accent/20 cursor-pointer hover:bg-accent/30"
+                            onClick={() => toggleAddOn(addOn.id)}
                           >
-                            <span className="text-start">
-                              {addOnContent.name}
-                            </span>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                checked={selectedAddOns.has(addOn.id)}
+                                onChange={() => toggleAddOn(addOn.id)}
+                                className="w-4 h-4 text-giggsi-gold"
+                                onClick={(e) => e.stopPropagation()}
+                              />
+                              <span className="text-start">
+                                {addOnContent.name}
+                              </span>
+                            </div>
                             {addOn.price > 0 && (
                               <span className="text-giggsi-gold font-medium">
                                 +{formatPrice(addOn.price)}
@@ -267,14 +302,48 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({ item, open, on
             </div>
           </div>
 
-          {/* Close Button */}
-          <div className="flex justify-end">
-            <Button 
-              variant="outline" 
+          {/* Quantity selector for waiter mode */}
+          {onAddToOrder && (
+            <div className="pt-4 border-t">
+              <div className="flex items-center justify-between">
+                <span className="text-lg font-semibold">כמות:</span>
+                <div className="flex items-center gap-3">
+                  <Button
+                    size="icon"
+                    variant="outline"
+                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                  >
+                    <Minus className="h-4 w-4" />
+                  </Button>
+                  <span className="w-12 text-center font-semibold">{quantity}</span>
+                  <Button
+                    size="icon"
+                    variant="outline"
+                    onClick={() => setQuantity(quantity + 1)}
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Action Buttons */}
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="outline"
               onClick={onClose}
             >
               {t('common.close')}
             </Button>
+            {onAddToOrder && (
+              <Button
+                onClick={handleAddToOrder}
+                className="bg-giggsi-gold hover:bg-giggsi-gold/90"
+              >
+                הוסף להזמנה
+              </Button>
+            )}
           </div>
         </div>
       </DialogContent>

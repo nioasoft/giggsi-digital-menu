@@ -66,6 +66,12 @@ export const AdminDashboard: React.FC = () => {
       description: t('admin.adminUsersSubtitle'),
       icon: Users,
       path: '/admin-giggsi-2024/users'
+    },
+    {
+      title: 'ניהול מלצרים',
+      description: 'ניהול משתמשי מערכת המלצרים',
+      icon: Users,
+      path: '/admin-giggsi-2024/waiters'
     }
   ]
 

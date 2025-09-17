@@ -154,3 +154,72 @@ export interface DatabaseError {
   hint?: string
   code?: string
 }
+
+// Waiter system types
+export interface WaiterUser {
+  id: string
+  email: string
+  name: string
+  is_active: boolean
+  created_at: string
+  updated_at: string
+  last_login?: string
+  created_by?: string
+}
+
+export interface Table {
+  id: string
+  table_number: number
+  status: 'available' | 'occupied' | 'reserved' | 'cleaning'
+  current_order_id?: string
+  created_at: string
+  updated_at: string
+}
+
+export interface Order {
+  id: string
+  table_id: string
+  waiter_id: string
+  status: 'open' | 'closed' | 'cancelled'
+  subtotal: number
+  service_charge: number
+  total_amount: number
+  paid: boolean
+  payment_method?: string
+  notes?: string
+  created_at: string
+  updated_at: string
+  closed_at?: string
+}
+
+export interface OrderItem {
+  id: string
+  order_id: string
+  menu_item_id: string
+  menu_item?: MenuItem
+  quantity: number
+  unit_price: number
+  total_price: number
+  notes?: string
+  addons?: AddOn[]
+  created_at: string
+  updated_at: string
+}
+
+export interface OrderSummary {
+  id: string
+  table_id: string
+  table_number: number
+  waiter_id: string
+  waiter_name: string
+  status: 'open' | 'closed' | 'cancelled'
+  subtotal: number
+  service_charge: number
+  total_amount: number
+  paid: boolean
+  payment_method?: string
+  notes?: string
+  created_at: string
+  closed_at?: string
+  item_count: number
+}

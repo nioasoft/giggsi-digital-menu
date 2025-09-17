@@ -11,7 +11,14 @@ import { PromotionsPage } from '@/pages/admin/PromotionsPage'
 import { SettingsPage } from '@/pages/admin/SettingsPage'
 import { AddOnGroupsPage } from '@/pages/admin/AddOnGroupsPage'
 import { AddOnsPage } from '@/pages/admin/AddOnsPage'
+import { WaitersPage } from '@/pages/admin/WaitersPage'
 import { ProtectedRoute } from '@/components/admin/ProtectedRoute'
+import { WaiterLoginPage } from '@/pages/waiter/WaiterLoginPage'
+import { TableSelectionPage } from '@/pages/waiter/TableSelectionPage'
+import { TableOrderPage } from '@/pages/waiter/TableOrderPage'
+import { BillPage } from '@/pages/waiter/BillPage'
+import { WaiterProtectedRoute } from '@/components/waiter/WaiterProtectedRoute'
+import { WaiterOrderProvider } from '@/contexts/WaiterOrderContext'
 import { PrivacyPolicy } from '@/pages/legal/PrivacyPolicy'
 import { TermsOfService } from '@/pages/legal/TermsOfService'
 import MigrateData from '@/pages/MigrateData'
@@ -104,7 +111,48 @@ function App() {
               </ProtectedRoute>
             }
           />
-          
+          <Route
+            path="/admin-giggsi-2024/waiters"
+            element={
+              <ProtectedRoute>
+                <WaitersPage />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Waiter Routes - No Layout */}
+          <Route path="/waiter/login" element={<WaiterLoginPage />} />
+          <Route
+            path="/waiter/tables"
+            element={
+              <WaiterProtectedRoute>
+                <WaiterOrderProvider>
+                  <TableSelectionPage />
+                </WaiterOrderProvider>
+              </WaiterProtectedRoute>
+            }
+          />
+          <Route
+            path="/waiter/table/:tableNumber"
+            element={
+              <WaiterProtectedRoute>
+                <WaiterOrderProvider>
+                  <TableOrderPage />
+                </WaiterOrderProvider>
+              </WaiterProtectedRoute>
+            }
+          />
+          <Route
+            path="/waiter/table/:tableNumber/bill"
+            element={
+              <WaiterProtectedRoute>
+                <WaiterOrderProvider>
+                  <BillPage />
+                </WaiterOrderProvider>
+              </WaiterProtectedRoute>
+            }
+          />
+
           {/* Public Routes with Layout */}
           <Route
             path="*"
