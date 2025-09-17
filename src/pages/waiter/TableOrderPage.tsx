@@ -37,6 +37,7 @@ export const TableOrderPage: React.FC = () => {
   const [allMenuItems, setAllMenuItems] = useState<MenuItem[]>([])
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null)
   const [itemModalOpen, setItemModalOpen] = useState(false)
+  const [showCategories, setShowCategories] = useState(true)
 
   useEffect(() => {
     loadTableData()
@@ -54,6 +55,16 @@ export const TableOrderPage: React.FC = () => {
       setMenuItems(allMenuItems.filter(item => item.category_id === selectedCategory))
     }
   }, [selectedCategory, allMenuItems])
+
+  const handleCategorySelect = (categoryId: string) => {
+    setSelectedCategory(categoryId)
+    setShowCategories(false)
+  }
+
+  const handleBackToCategories = () => {
+    setShowCategories(true)
+    // Keep selected category to maintain state
+  }
 
   const loadMenuData = async () => {
     try {
@@ -280,39 +291,71 @@ export const TableOrderPage: React.FC = () => {
           {/* Menu Categories and Items */}
           <div className="lg:col-span-2 space-y-6">
             {/* Categories Grid - Optimized for mobile */}
-            <div>
-              <h2 className="text-lg font-semibold mb-3">קטגוריות</h2>
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3">
-                {categories.map((category) => (
-                  <button
-                    key={category.id}
-                    onClick={() => setSelectedCategory(category.id)}
-                    className={cn(
-                      "p-3 sm:p-4 rounded-lg border transition-colors text-right min-h-[80px]",
-                      selectedCategory === category.id
-                        ? "bg-giggsi-gold text-white border-giggsi-gold"
-                        : "bg-card hover:bg-accent active:bg-accent"
-                    )}
-                  >
-                    <h3 className="font-medium text-sm sm:text-base">{category.name_he}</h3>
-                    <p className="text-xs sm:text-sm opacity-80 mt-1">
-                      {allMenuItems.filter(item => item.category_id === category.id).length} פריטים
-                    </p>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Menu Items - Mobile optimized */}
-            {selectedCategory && (
+            {showCategories ? (
               <div>
-                <h2 className="text-lg font-semibold mb-3">
-                  {categories.find(c => c.id === selectedCategory)?.name_he}
-                </h2>
-                <div className="grid grid-cols-1 gap-3">
-                  {menuItems
-                    .filter(item => item.is_available !== false)
-                    .map((item) => (
+                <h2 className="text-lg font-semibold mb-3">קטגוריות</h2>
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3">
+                  {categories.map((category) => (
+                    <button
+                      key={category.id}
+                      onClick={() => handleCategorySelect(category.id)}
+                      className={cn(
+                        "p-3 sm:p-4 rounded-lg border transition-colors text-right min-h-[80px]",
+                        selectedCategory === category.id
+                          ? "bg-giggsi-gold text-white border-giggsi-gold"
+                          : "bg-card hover:bg-accent active:bg-accent"
+                      )}
+                    >
+                      <h3 className="font-medium text-sm sm:text-base">{category.name_he}</h3>
+                      <p className="text-xs sm:text-sm opacity-80 mt-1">
+                        {allMenuItems.filter(item => item.category_id === category.id).length} פריטים
+                      </p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              /* Menu Items - Mobile optimized */
+              selectedCategory && (
+                <div>
+                  {/* Back button and category title */}
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleBackToCategories}
+                        className="hover:bg-accent"
+                      >
+                        <ArrowRight className="h-4 w-4 ml-1" />
+                        חזרה לקטגוריות
+                      </Button>
+                    </div>
+                    <h2 className="text-lg font-semibold">
+                      {categories.find(c => c.id === selectedCategory)?.name_he}
+                      <Badge className="mr-2" variant="secondary">
+                        {menuItems.filter(item => item.is_available !== false).length} פריטים
+                      </Badge>
+                    </h2>
+                  </div>
+
+                  {/* Items list */}
+                  {menuItems.filter(item => item.is_available !== false).length === 0 ? (
+                    <Card className="p-8 text-center">
+                      <p className="text-muted-foreground">אין פריטים זמינים בקטגוריה זו</p>
+                      <Button
+                        variant="outline"
+                        className="mt-4"
+                        onClick={handleBackToCategories}
+                      >
+                        חזרה לקטגוריות
+                      </Button>
+                    </Card>
+                  ) : (
+                    <div className="grid grid-cols-1 gap-3">
+                      {menuItems
+                        .filter(item => item.is_available !== false)
+                        .map((item) => (
                       <Card
                         key={item.id}
                         className="active:scale-[0.98] transition-transform"
@@ -347,8 +390,10 @@ export const TableOrderPage: React.FC = () => {
                         </CardContent>
                       </Card>
                     ))}
+                    </div>
+                  )}
                 </div>
-              </div>
+              )
             )}
           </div>
 
