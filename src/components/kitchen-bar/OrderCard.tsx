@@ -6,12 +6,14 @@ import { getElapsedTime } from '@/lib/stationUtils'
 import type { KitchenBarOrder } from '@/lib/kitchenBarService'
 
 interface OrderCardProps {
+  orderId?: string
   tableNumber: number
   orders: KitchenBarOrder[]
-  onOrderReady: (tableNumber: number) => void
+  onOrderReady: () => void
 }
 
 export const OrderCard: React.FC<OrderCardProps> = ({
+  orderId,
   tableNumber,
   orders,
   onOrderReady
@@ -32,6 +34,9 @@ export const OrderCard: React.FC<OrderCardProps> = ({
         <div className="flex justify-between items-start">
           <div>
             <h3 className="text-2xl font-bold text-white">שולחן {tableNumber}</h3>
+            {orderId && (
+              <p className="text-xs text-gray-500 mt-0.5">הזמנה #{orderId.slice(0, 8)}</p>
+            )}
             <div className="flex items-center gap-2 mt-1">
               <Clock className="h-4 w-4 text-gray-400" />
               <span className="text-sm text-gray-400">{elapsedTime}</span>
@@ -61,8 +66,15 @@ export const OrderCard: React.FC<OrderCardProps> = ({
               <span className="text-white">{order.item_name}</span>
             </div>
             {order.addons && order.addons.length > 0 && (
-              <div className="text-sm text-blue-400 mt-1 mr-8">
-                תוספות: {order.addons.map(addon => addon.name_he || addon.name || 'תוספת').join(', ')}
+              <div className="mt-1 mr-8">
+                <div className="text-sm text-gray-400">תוספות:</div>
+                <div className="mr-4">
+                  {order.addons.map((addon, idx) => (
+                    <div key={idx} className="text-sm text-blue-400">
+                      • {addon.name_he || addon.name || 'תוספת'}
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
             {order.notes && (
@@ -77,7 +89,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
         <Button
           className="w-full mt-4 bg-green-600 hover:bg-green-700"
           size="lg"
-          onClick={() => onOrderReady(tableNumber)}
+          onClick={onOrderReady}
         >
           <CheckCircle className="h-5 w-5 ml-2" />
           הזמנה מוכנה

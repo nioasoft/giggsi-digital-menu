@@ -25,7 +25,11 @@ export async function getKitchenOrders(): Promise<KitchenBarOrder[]> {
     .select('*')
     .order('created_at', { ascending: true })
 
-  if (error) throw error
+  console.log('Kitchen orders from DB:', data)
+  if (error) {
+    console.error('Error fetching kitchen orders:', error)
+    throw error
+  }
   return data || []
 }
 
@@ -36,7 +40,11 @@ export async function getBarOrders(): Promise<KitchenBarOrder[]> {
     .select('*')
     .order('created_at', { ascending: true })
 
-  if (error) throw error
+  console.log('Bar orders from DB:', data)
+  if (error) {
+    console.error('Error fetching bar orders:', error)
+    throw error
+  }
   return data || []
 }
 
@@ -52,7 +60,7 @@ export async function updateKitchenItemStatus(
   // Add timestamps based on status
   if (status === 'in_progress') {
     updateData.kitchen_started_at = new Date().toISOString()
-  } else if (status === 'ready') {
+  } else if (status === 'ready' || status === 'archived') {
     updateData.kitchen_ready_at = new Date().toISOString()
   }
 
@@ -76,7 +84,7 @@ export async function updateBarItemStatus(
   // Add timestamps based on status
   if (status === 'in_progress') {
     updateData.bar_started_at = new Date().toISOString()
-  } else if (status === 'ready') {
+  } else if (status === 'ready' || status === 'archived') {
     updateData.bar_ready_at = new Date().toISOString()
   }
 

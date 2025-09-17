@@ -9,7 +9,7 @@ import {
   subscribeToBarOrders,
   type KitchenBarOrder
 } from '@/lib/kitchenBarService'
-import { groupOrdersByTable } from '@/lib/stationUtils'
+import { groupOrdersByOrderId } from '@/lib/stationUtils'
 
 export const BarDisplayPage: React.FC = () => {
   const [orders, setOrders] = useState<KitchenBarOrder[]>([])
@@ -46,30 +46,36 @@ export const BarDisplayPage: React.FC = () => {
     }
   }
 
-  const handleOrderReady = async (tableNumber: number) => {
+  const handleOrderReady = async (orderId: string) => {
+    console.log('handleOrderReady called for order:', orderId)
     try {
-      // Get all orders for this table
-      const tableOrders = orders.filter(o => o.table_number === tableNumber)
+      // Get all items for this order
+      const orderItems = orders.filter(o => o.order_id === orderId)
+      console.log('Found items for order:', orderItems)
 
-      // Mark all as ready
-      for (const order of tableOrders) {
-        await updateBarItemStatus(order.id, 'ready')
+      // Mark all as archived (not ready) so they disappear from view
+      for (const order of orderItems) {
+        console.log('Updating order:', order.id, 'current status:', order.status)
+        await updateBarItemStatus(order.id, 'archived')
+        console.log('Order updated successfully:', order.id)
       }
 
       // Reload orders to refresh display
+      console.log('Reloading orders...')
       await loadOrders()
+      console.log('Orders reloaded')
 
       // Show success message
       const audio = new Audio('/notification.mp3')
       audio.play().catch(() => {})
     } catch (err: any) {
-      console.error('Error marking order ready:', err)
+      console.error('Error marking order ready - Full error:', err)
       setError('שגיאה בסימון הזמנה כמוכנה')
     }
   }
 
-  // Group orders by table
-  const ordersByTable = groupOrdersByTable(orders)
+  // Group orders by order_id
+  const ordersByOrderId = groupOrdersByOrderId(orders)
 
   if (loading) {
     return (
@@ -84,7 +90,7 @@ export const BarDisplayPage: React.FC = () => {
   return (
     <DisplayLayout
       title="בר"
-      subtitle={`${ordersByTable.size} שולחנות פעילים`}
+      subtitle={`${ordersByOrderId.size} הזמנות פעילות`}
     >
       {error && (
         <Alert variant="destructive" className="mb-4">
@@ -92,7 +98,7 @@ export const BarDisplayPage: React.FC = () => {
         </Alert>
       )}
 
-      {ordersByTable.size === 0 ? (
+      {ordersByOrderId.size === 0 ? (
         <div className="flex items-center justify-center h-full">
           <div className="text-center">
             <div className="text-6xl mb-4">🍺</div>
@@ -102,19 +108,20 @@ export const BarDisplayPage: React.FC = () => {
         </div>
       ) : (
         <div className="flex gap-4 overflow-x-auto pb-4" style={{ scrollbarWidth: 'thin' }}>
-          {Array.from(ordersByTable.entries())
+          {Array.from(ordersByOrderId.entries())
             .sort(([, a], [, b]) => {
               // Sort by earliest order creation time
-              const aTime = Math.min(...a.map(o => new Date(o.created_at).getTime()))
-              const bTime = Math.min(...b.map(o => new Date(o.created_at).getTime()))
+              const aTime = Math.min(...a.items.map(o => new Date(o.created_at).getTime()))
+              const bTime = Math.min(...b.items.map(o => new Date(o.created_at).getTime()))
               return aTime - bTime
             })
-            .map(([tableNumber, tableOrders]) => (
+            .map(([orderId, { tableNumber, items }]) => (
               <OrderCard
-                key={tableNumber}
+                key={orderId}
+                orderId={orderId}
                 tableNumber={tableNumber}
-                orders={tableOrders}
-                onOrderReady={handleOrderReady}
+                orders={items}
+                onOrderReady={() => handleOrderReady(orderId)}
               />
             ))}
         </div>

@@ -83,8 +83,15 @@ export function getStatusColor(status: DisplayStatus): string {
  */
 export function getElapsedTime(createdAt: string): string {
   const now = new Date()
+  // Parse the UTC time from the server
   const created = new Date(createdAt)
-  const diffMs = now.getTime() - created.getTime()
+
+  // If the created date doesn't have timezone info, treat it as UTC
+  // and adjust for Israel timezone (UTC+2 or UTC+3 depending on DST)
+  const israelOffset = 3 * 60 * 60 * 1000 // 3 hours in milliseconds
+  const adjustedCreated = new Date(created.getTime() - israelOffset)
+
+  const diffMs = now.getTime() - adjustedCreated.getTime()
   const diffMins = Math.floor(diffMs / 60000)
 
   if (diffMins < 1) {
@@ -109,6 +116,29 @@ export function groupOrdersByTable<T extends { table_number: number }>(orders: T
     const tableOrders = grouped.get(order.table_number) || []
     tableOrders.push(order)
     grouped.set(order.table_number, tableOrders)
+  }
+
+  return grouped
+}
+
+/**
+ * Groups order items by order_id (each order gets its own card)
+ */
+export function groupOrdersByOrderId<T extends { order_id: string, table_number: number }>(
+  orders: T[]
+): Map<string, { tableNumber: number; items: T[] }> {
+  const grouped = new Map<string, { tableNumber: number; items: T[] }>()
+
+  for (const order of orders) {
+    const existingGroup = grouped.get(order.order_id)
+    if (existingGroup) {
+      existingGroup.items.push(order)
+    } else {
+      grouped.set(order.order_id, {
+        tableNumber: order.table_number,
+        items: [order]
+      })
+    }
   }
 
   return grouped
