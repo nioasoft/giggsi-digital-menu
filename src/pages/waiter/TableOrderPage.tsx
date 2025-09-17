@@ -358,7 +358,8 @@ export const TableOrderPage: React.FC = () => {
                         .map((item) => (
                       <Card
                         key={item.id}
-                        className="active:scale-[0.98] transition-transform"
+                        className="active:scale-[0.98] transition-transform cursor-pointer hover:shadow-lg"
+                        onClick={() => handleOpenItemModal(item)}
                       >
                         <CardContent className="p-3 sm:p-4">
                           <div className="flex items-start justify-between">
@@ -383,7 +384,7 @@ export const TableOrderPage: React.FC = () => {
                                 }}
                               >
                                 <Plus className="h-4 w-4 ml-1" />
-                                בחר
+                                הוסף
                               </Button>
                             </div>
                           </div>

@@ -131,6 +131,7 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({ item, open, on
   }
 
 
+  // Early return check after hooks
   if (!item) return null
 
   const localizedContent = getLocalizedContent(item, i18n.language)
@@ -169,15 +170,7 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({ item, open, on
     })
   }
 
-  const handleAddToOrder = () => {
-    if (!item || !onAddToOrder) return
-
-    const selectedAddOnItems = addOns.filter(addon => selectedAddOns.has(addon.id))
-    onAddToOrder(item, quantity, selectedAddOnItems)
-    onClose()
-  }
-
-  // Calculate total price with selected addons
+  // Calculate total price with selected addons - must be before early return
   const selectedAddOnItems = useMemo(() => {
     return addOns.filter(addon => selectedAddOns.has(addon.id))
   }, [addOns, selectedAddOns])
@@ -189,6 +182,14 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({ item, open, on
   const totalPrice = useMemo(() => {
     return calculateItemPriceWithAddons(item?.price || 0, selectedAddOnItems as any[], quantity)
   }, [item?.price, selectedAddOnItems, quantity])
+
+  const handleAddToOrder = () => {
+    if (!item || !onAddToOrder) return
+
+    const selectedAddOnItemsForOrder = addOns.filter(addon => selectedAddOns.has(addon.id))
+    onAddToOrder(item, quantity, selectedAddOnItemsForOrder)
+    onClose()
+  }
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
