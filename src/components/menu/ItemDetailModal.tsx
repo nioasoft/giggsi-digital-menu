@@ -42,6 +42,19 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({ item, open, on
   const [quantity, setQuantity] = useState(1)
   const [selectedAddOns, setSelectedAddOns] = useState<Set<string>>(new Set())
 
+  // Calculate total price with selected addons - ALL hooks must be before any returns
+  const selectedAddOnItems = useMemo(() => {
+    return addOns.filter(addon => selectedAddOns.has(addon.id))
+  }, [addOns, selectedAddOns])
+
+  const totalAddonsPrice = useMemo(() => {
+    return getAddonsPrice(selectedAddOnItems as any[])
+  }, [selectedAddOnItems])
+
+  const totalPrice = useMemo(() => {
+    return calculateItemPriceWithAddons(item?.price || 0, selectedAddOnItems as any[], quantity)
+  }, [item?.price, selectedAddOnItems, quantity])
+
   useEffect(() => {
     if (item) {
       loadAddOns()
@@ -169,19 +182,6 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({ item, open, on
       return newSet
     })
   }
-
-  // Calculate total price with selected addons - must be before early return
-  const selectedAddOnItems = useMemo(() => {
-    return addOns.filter(addon => selectedAddOns.has(addon.id))
-  }, [addOns, selectedAddOns])
-
-  const totalAddonsPrice = useMemo(() => {
-    return getAddonsPrice(selectedAddOnItems as any[])
-  }, [selectedAddOnItems])
-
-  const totalPrice = useMemo(() => {
-    return calculateItemPriceWithAddons(item?.price || 0, selectedAddOnItems as any[], quantity)
-  }, [item?.price, selectedAddOnItems, quantity])
 
   const handleAddToOrder = () => {
     if (!item || !onAddToOrder) return
