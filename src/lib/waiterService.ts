@@ -382,18 +382,7 @@ export function calculateTotal(subtotal: number): number {
   return subtotal + calculateServiceCharge(subtotal)
 }
 
-// Send to kitchen functions
-export async function sendItemsToKitchen(itemIds: string[]): Promise<void> {
-  const { error } = await supabase
-    .from('order_items')
-    .update({
-      sent_to_kitchen: true,
-      sent_to_kitchen_at: new Date().toISOString()
-    })
-    .in('id', itemIds)
-
-  if (error) throw error
-}
+// Send to kitchen functions - removed duplicate, using batch-aware version below
 
 export async function getUnsentItems(orderId: string): Promise<OrderItem[]> {
   const { data, error } = await supabase
@@ -422,15 +411,60 @@ export async function hasUnsentItems(orderId: string): Promise<boolean> {
   return (data?.length ?? 0) > 0
 }
 
+export async function getNextBatchNumber(orderId: string): Promise<number> {
+  const { data, error } = await supabase
+    .from('order_items')
+    .select('batch_number')
+    .eq('order_id', orderId)
+    .order('batch_number', { ascending: false })
+    .limit(1)
+
+  if (error) throw error
+
+  const maxBatch = data?.[0]?.batch_number || 0
+  return maxBatch + 1
+}
+
 export async function sendAllOrderItemsToKitchen(orderId: string): Promise<void> {
+  // Get the next batch number for this order
+  const batchNumber = await getNextBatchNumber(orderId)
+
   const { error } = await supabase
     .from('order_items')
     .update({
       sent_to_kitchen: true,
-      sent_to_kitchen_at: new Date().toISOString()
+      sent_to_kitchen_at: new Date().toISOString(),
+      batch_number: batchNumber
     })
     .eq('order_id', orderId)
     .eq('sent_to_kitchen', false)
+
+  if (error) throw error
+}
+
+export async function sendItemsToKitchen(itemIds: string[]): Promise<void> {
+  if (itemIds.length === 0) return
+
+  // Get the order_id from the first item to determine batch number
+  const { data: firstItem, error: firstError } = await supabase
+    .from('order_items')
+    .select('order_id')
+    .eq('id', itemIds[0])
+    .single()
+
+  if (firstError) throw firstError
+
+  // Get next batch number
+  const batchNumber = await getNextBatchNumber(firstItem.order_id)
+
+  const { error } = await supabase
+    .from('order_items')
+    .update({
+      sent_to_kitchen: true,
+      sent_to_kitchen_at: new Date().toISOString(),
+      batch_number: batchNumber
+    })
+    .in('id', itemIds)
 
   if (error) throw error
 }

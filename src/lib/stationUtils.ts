@@ -143,3 +143,29 @@ export function groupOrdersByOrderId<T extends { order_id: string, table_number:
 
   return grouped
 }
+
+/**
+ * Groups order items by order_id + batch_number (each batch gets its own card)
+ */
+export function groupOrdersByBatch<T extends { order_id: string, table_number: number, batch_number: number }>(
+  orders: T[]
+): Map<string, { tableNumber: number; orderId: string; batchNumber: number; items: T[] }> {
+  const grouped = new Map<string, { tableNumber: number; orderId: string; batchNumber: number; items: T[] }>()
+
+  for (const order of orders) {
+    const batchKey = `${order.order_id}_batch_${order.batch_number}`
+    const existingGroup = grouped.get(batchKey)
+    if (existingGroup) {
+      existingGroup.items.push(order)
+    } else {
+      grouped.set(batchKey, {
+        tableNumber: order.table_number,
+        orderId: order.order_id,
+        batchNumber: order.batch_number,
+        items: [order]
+      })
+    }
+  }
+
+  return grouped
+}

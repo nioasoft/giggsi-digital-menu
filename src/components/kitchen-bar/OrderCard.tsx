@@ -7,6 +7,7 @@ import type { KitchenBarOrder } from '@/lib/kitchenBarService'
 
 interface OrderCardProps {
   orderId?: string
+  batchNumber?: number
   tableNumber: number
   orders: KitchenBarOrder[]
   onOrderReady: () => void
@@ -14,6 +15,7 @@ interface OrderCardProps {
 
 export const OrderCard: React.FC<OrderCardProps> = ({
   orderId,
+  batchNumber,
   tableNumber,
   orders,
   onOrderReady
@@ -35,7 +37,14 @@ export const OrderCard: React.FC<OrderCardProps> = ({
           <div>
             <h3 className="text-2xl font-bold text-white">שולחן {tableNumber}</h3>
             {orderId && (
-              <p className="text-xs text-gray-500 mt-0.5">הזמנה #{orderId.slice(0, 8)}</p>
+              <p className="text-xs text-gray-500 mt-0.5">
+                הזמנה #{orderId.slice(0, 8)}
+                {batchNumber && batchNumber > 1 && (
+                  <span className="mr-2 bg-blue-600 text-white px-1.5 py-0.5 rounded text-xs">
+                    שליחה #{batchNumber}
+                  </span>
+                )}
+              </p>
             )}
             <div className="flex items-center gap-2 mt-1">
               <Clock className="h-4 w-4 text-gray-400" />

@@ -120,6 +120,7 @@ export const TableOrderPage: React.FC = () => {
   const handleBackToCategories = () => {
     setShowCategories(true)
     // Keep selected category to maintain state
+    // No need to check unsent items - this is internal navigation
   }
 
   const loadMenuData = async () => {

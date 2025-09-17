@@ -7,6 +7,7 @@ export interface KitchenBarOrder {
   quantity: number
   notes: string | null
   addons: any[] | null  // Array of addon objects from the view
+  batch_number: number  // Batch number for grouping
   status: DisplayStatus
   created_at: string
   sent_to_kitchen_at: string | null  // Exact time when sent to kitchen

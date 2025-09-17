@@ -9,7 +9,7 @@ import {
   subscribeToBarOrders,
   type KitchenBarOrder
 } from '@/lib/kitchenBarService'
-import { groupOrdersByOrderId } from '@/lib/stationUtils'
+import { groupOrdersByBatch } from '@/lib/stationUtils'
 
 export const BarDisplayPage: React.FC = () => {
   const [orders, setOrders] = useState<KitchenBarOrder[]>([])
@@ -74,8 +74,8 @@ export const BarDisplayPage: React.FC = () => {
     }
   }
 
-  // Group orders by order_id
-  const ordersByOrderId = groupOrdersByOrderId(orders)
+  // Group orders by batch
+  const ordersByBatch = groupOrdersByBatch(orders)
 
   if (loading) {
     return (
@@ -90,7 +90,7 @@ export const BarDisplayPage: React.FC = () => {
   return (
     <DisplayLayout
       title="בר"
-      subtitle={`${ordersByOrderId.size} הזמנות פעילות`}
+      subtitle={`${ordersByBatch.size} הזמנות פעילות`}
     >
       {error && (
         <Alert variant="destructive" className="mb-4">
@@ -98,7 +98,7 @@ export const BarDisplayPage: React.FC = () => {
         </Alert>
       )}
 
-      {ordersByOrderId.size === 0 ? (
+      {ordersByBatch.size === 0 ? (
         <div className="flex items-center justify-center h-full">
           <div className="text-center">
             <div className="text-6xl mb-4">🍺</div>
@@ -108,17 +108,18 @@ export const BarDisplayPage: React.FC = () => {
         </div>
       ) : (
         <div className="flex gap-4 overflow-x-auto pb-4" style={{ scrollbarWidth: 'thin' }}>
-          {Array.from(ordersByOrderId.entries())
+          {Array.from(ordersByBatch.entries())
             .sort(([, a], [, b]) => {
               // Sort by earliest order creation time
               const aTime = Math.min(...a.items.map(o => new Date(o.created_at).getTime()))
               const bTime = Math.min(...b.items.map(o => new Date(o.created_at).getTime()))
               return aTime - bTime
             })
-            .map(([orderId, { tableNumber, items }]) => (
+            .map(([batchKey, { tableNumber, orderId, batchNumber, items }]) => (
               <OrderCard
-                key={orderId}
+                key={batchKey}
                 orderId={orderId}
+                batchNumber={batchNumber}
                 tableNumber={tableNumber}
                 orders={items}
                 onOrderReady={() => handleOrderReady(orderId)}

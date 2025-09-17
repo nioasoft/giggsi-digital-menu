@@ -13,6 +13,7 @@ SELECT
   oi.quantity,
   oi.notes,
   oi.addons,  -- Include addons
+  oi.batch_number,  -- Include batch number for grouping
   oi.kitchen_status as status,
   oi.created_at,
   oi.sent_to_kitchen_at,  -- Include exact sent time
@@ -43,6 +44,7 @@ SELECT
   oi.quantity,
   oi.notes,
   oi.addons,  -- Include addons
+  oi.batch_number,  -- Include batch number for grouping
   oi.bar_status as status,
   oi.created_at,
   oi.sent_to_kitchen_at,  -- Include exact sent time
