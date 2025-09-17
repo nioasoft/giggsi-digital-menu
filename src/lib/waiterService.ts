@@ -124,7 +124,8 @@ export async function addItemToOrder(
   menuItemId: string,
   quantity: number,
   notes?: string,
-  addons?: AddOn[]
+  addons?: AddOn[],
+  cookingPreference?: string
 ): Promise<OrderItem> {
   // Get menu item details
   const { data: menuItem, error: menuError } = await supabase
@@ -150,7 +151,8 @@ export async function addItemToOrder(
       unit_price: unitPrice,
       total_price: totalPrice,
       notes,
-      addons: addons || null
+      addons: addons || null,
+      cooking_preference: cookingPreference || null
     })
     .select()
     .single()

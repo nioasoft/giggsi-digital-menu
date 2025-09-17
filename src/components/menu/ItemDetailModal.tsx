@@ -7,7 +7,8 @@ import { formatPrice, getLocalizedContent } from '@/lib/utils'
 import { calculateItemPriceWithAddons, getAddonsPrice } from '@/lib/priceUtils'
 import { supabase } from '@/lib/supabase'
 import { Loader2, ChevronDown, ChevronUp, Plus, Minus } from 'lucide-react'
-import type { MenuItem } from '@/lib/types'
+import { Label } from '@/components/ui/label'
+import type { MenuItem, CookingPreference } from '@/lib/types'
 
 interface AddOnWithGroup {
   id: string
@@ -30,10 +31,11 @@ interface ItemDetailModalProps {
   item: MenuItem | null
   open: boolean
   onClose: () => void
-  onAddToOrder?: (item: MenuItem, quantity: number, addons?: any[]) => void
+  onAddToOrder?: (item: MenuItem, quantity: number, addons?: any[], cookingPreference?: CookingPreference) => void
+  categoryRequiresCooking?: boolean
 }
 
-export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({ item, open, onClose, onAddToOrder }) => {
+export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({ item, open, onClose, onAddToOrder, categoryRequiresCooking }) => {
   const { t, i18n } = useTranslation()
   const isRTL = i18n.language === 'he' || i18n.language === 'ar'
   const [addOns, setAddOns] = useState<AddOnWithGroup[]>([])
@@ -41,6 +43,7 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({ item, open, on
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set())
   const [quantity, setQuantity] = useState(1)
   const [selectedAddOns, setSelectedAddOns] = useState<Set<string>>(new Set())
+  const [cookingPreference, setCookingPreference] = useState<CookingPreference | undefined>(undefined)
 
   // Calculate total price with selected addons - ALL hooks must be before any returns
   const selectedAddOnItems = useMemo(() => {
@@ -60,6 +63,7 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({ item, open, on
       loadAddOns()
       setQuantity(1)
       setSelectedAddOns(new Set())
+      setCookingPreference(undefined)
     }
   }, [item])
 
@@ -186,8 +190,13 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({ item, open, on
   const handleAddToOrder = () => {
     if (!item || !onAddToOrder) return
 
+    // Check if cooking preference is required but not selected
+    if (categoryRequiresCooking && !cookingPreference) {
+      return
+    }
+
     const selectedAddOnItemsForOrder = addOns.filter(addon => selectedAddOns.has(addon.id))
-    onAddToOrder(item, quantity, selectedAddOnItemsForOrder)
+    onAddToOrder(item, quantity, selectedAddOnItemsForOrder, cookingPreference)
     onClose()
   }
 
@@ -342,6 +351,41 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({ item, open, on
             </div>
           </div>
 
+          {/* Cooking preference selector for grill/burger items */}
+          {onAddToOrder && categoryRequiresCooking && (
+            <div className="space-y-2">
+              <Label className="text-start font-semibold">
+                מידת עשייה <span className="text-red-500">*</span>
+              </Label>
+              <div className="grid grid-cols-3 gap-2">
+                <Button
+                  type="button"
+                  variant={cookingPreference === 'M' ? 'default' : 'outline'}
+                  onClick={() => setCookingPreference('M')}
+                  className="w-full"
+                >
+                  Medium
+                </Button>
+                <Button
+                  type="button"
+                  variant={cookingPreference === 'MW' ? 'default' : 'outline'}
+                  onClick={() => setCookingPreference('MW')}
+                  className="w-full"
+                >
+                  Medium Well
+                </Button>
+                <Button
+                  type="button"
+                  variant={cookingPreference === 'WD' ? 'default' : 'outline'}
+                  onClick={() => setCookingPreference('WD')}
+                  className="w-full"
+                >
+                  Well Done
+                </Button>
+              </div>
+            </div>
+          )}
+
           {/* Quantity selector for waiter mode */}
           {onAddToOrder && (
             <div className="pt-4 border-t">
@@ -380,6 +424,7 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({ item, open, on
               <Button
                 onClick={handleAddToOrder}
                 className="bg-giggsi-gold hover:bg-giggsi-gold/90"
+                disabled={categoryRequiresCooking && !cookingPreference}
               >
                 הוסף להזמנה ({formatPrice(totalPrice)})
               </Button>

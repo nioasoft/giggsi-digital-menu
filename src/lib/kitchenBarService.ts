@@ -8,6 +8,7 @@ export interface KitchenBarOrder {
   notes: string | null
   addons: any[] | null  // Array of addon objects from the view
   batch_number: number  // Batch number for grouping
+  cooking_preference?: string | null  // Cooking preference for grill/burger items
   status: DisplayStatus
   created_at: string
   sent_to_kitchen_at: string | null  // Exact time when sent to kitchen

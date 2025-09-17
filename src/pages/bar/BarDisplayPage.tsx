@@ -24,8 +24,8 @@ export const BarDisplayPage: React.FC = () => {
       setOrders(newOrders)
     })
 
-    // Refresh every 30 seconds as backup
-    const interval = setInterval(loadOrders, 30000)
+    // Refresh every 2 seconds for real-time updates
+    const interval = setInterval(loadOrders, 2000)
 
     return () => {
       unsubscribe()

@@ -62,24 +62,29 @@ export const OrderCard: React.FC<OrderCardProps> = ({
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-2">
+      <CardContent className="space-y-1.5">
         {orders.map((order) => (
           <div
             key={order.id}
-            className="p-3 bg-gray-700 rounded-lg"
+            className="p-2 bg-gray-700 rounded-lg"
           >
             <div className="flex items-center gap-3">
               <span className="text-lg font-medium text-white">
                 {order.quantity}x
               </span>
               <span className="text-white">{order.item_name}</span>
+              {order.cooking_preference && (
+                <span className="mr-2 px-2 py-0.5 bg-red-600 text-white text-sm font-bold rounded">
+                  {order.cooking_preference}
+                </span>
+              )}
             </div>
             {order.addons && order.addons.length > 0 && (
-              <div className="mt-1 mr-8">
-                <div className="text-sm text-gray-400">תוספות:</div>
-                <div className="mr-4">
+              <div className="mt-0.5 mr-8">
+                <div className="text-xs text-gray-400">תוספות:</div>
+                <div className="mr-3">
                   {order.addons.map((addon, idx) => (
-                    <div key={idx} className="text-sm text-blue-400">
+                    <div key={idx} className="text-xs text-blue-400">
                       • {addon.name_he || addon.name || 'תוספת'}
                     </div>
                   ))}
@@ -87,7 +92,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
               </div>
             )}
             {order.notes && (
-              <p className="text-sm text-gray-400 mt-1 mr-8">
+              <p className="text-xs text-gray-400 mt-0.5 mr-8">
                 הערה: {order.notes}
               </p>
             )}

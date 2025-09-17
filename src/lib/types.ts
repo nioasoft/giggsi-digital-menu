@@ -45,6 +45,7 @@ export interface MenuCategory {
   image_urls?: ImageUrls  // New field for multiple image sizes
   display_order: number
   is_active: boolean
+  requires_cooking_preference?: boolean
   created_at: string
   updated_at: string
 }
@@ -192,6 +193,8 @@ export interface Order {
   closed_at?: string
 }
 
+export type CookingPreference = 'M' | 'MW' | 'WD'
+
 export interface OrderItem {
   id: string
   order_id: string
@@ -202,6 +205,7 @@ export interface OrderItem {
   total_price: number
   notes?: string
   addons?: AddOn[]
+  cooking_preference?: CookingPreference
   sent_to_kitchen?: boolean
   sent_to_kitchen_at?: string
   created_at: string

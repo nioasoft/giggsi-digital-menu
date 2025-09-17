@@ -20,7 +20,7 @@ import { getCurrentWaiter, signOutWaiter } from '@/lib/waiterAuth'
 import { MobileCart, DesktopCart } from '@/components/waiter/MobileCart'
 import { ItemDetailModal } from '@/components/menu/ItemDetailModal'
 import { ExitConfirmDialog } from '@/components/waiter/ExitConfirmDialog'
-import type { Table, Order, OrderItem, MenuItem, WaiterUser, AddOn } from '@/lib/types'
+import type { Table, Order, OrderItem, MenuItem, WaiterUser, AddOn, CookingPreference } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
 
@@ -211,7 +211,7 @@ export const TableOrderPage: React.FC = () => {
     setItemModalOpen(true)
   }
 
-  const handleAddToOrder = async (item: MenuItem, quantity: number, addons?: AddOn[]) => {
+  const handleAddToOrder = async (item: MenuItem, quantity: number, addons?: AddOn[], cookingPreference?: CookingPreference) => {
     if (!order) {
       // Create order first if doesn't exist
       if (!table || !currentWaiter) return
@@ -221,8 +221,8 @@ export const TableOrderPage: React.FC = () => {
         setOrder(newOrder)
         setTable({ ...table, status: 'occupied', current_order_id: newOrder.id })
 
-        // Now add the item with addons
-        await addItemToOrder(newOrder.id, item.id, quantity, '', addons)
+        // Now add the item with addons and cooking preference
+        await addItemToOrder(newOrder.id, item.id, quantity, '', addons, cookingPreference)
         await loadOrderItems()
         await loadUnsentItems()
         // Reload order to get updated totals
@@ -234,7 +234,7 @@ export const TableOrderPage: React.FC = () => {
     } else {
       // Add to existing order
       try {
-        await addItemToOrder(order.id, item.id, quantity, '', addons)
+        await addItemToOrder(order.id, item.id, quantity, '', addons, cookingPreference)
         await loadOrderItems()
         await loadUnsentItems()
         // Reload order to get updated totals
@@ -498,6 +498,9 @@ export const TableOrderPage: React.FC = () => {
           setSelectedItem(null)
         }}
         onAddToOrder={handleAddToOrder}
+        categoryRequiresCooking={
+          selectedItem && categories.find(c => c.id === selectedItem.category_id)?.requires_cooking_preference
+        }
       />
 
       {/* Exit Confirmation Dialog */}
