@@ -76,6 +76,11 @@ export const PasswordModal: React.FC<PasswordModalProps> = ({
               dir="ltr"
               className="text-center"
               autoFocus
+              autoComplete="off"
+              autoCapitalize="off"
+              autoCorrect="off"
+              spellCheck="false"
+              data-form-type="other"
             />
 
             {error && (

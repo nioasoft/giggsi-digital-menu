@@ -4,10 +4,11 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { BillModal } from '@/components/waiter/BillModal'
 import { getAllTables } from '@/lib/waiterService'
 import { signOutWaiter, getCurrentWaiter } from '@/lib/waiterAuth'
 import type { Table, WaiterUser } from '@/lib/types'
-import { Loader2, LogOut, User } from 'lucide-react'
+import { Loader2, LogOut, User, Receipt } from 'lucide-react'
 
 export const TableSelectionPage: React.FC = () => {
   const navigate = useNavigate()
@@ -15,6 +16,8 @@ export const TableSelectionPage: React.FC = () => {
   const [currentWaiter, setCurrentWaiter] = useState<WaiterUser | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [showBillModal, setShowBillModal] = useState(false)
+  const [selectedTableForBill, setSelectedTableForBill] = useState<Table | null>(null)
 
   useEffect(() => {
     loadData()
@@ -48,6 +51,12 @@ export const TableSelectionPage: React.FC = () => {
   const handleLogout = async () => {
     await signOutWaiter()
     navigate('/waiter/login')
+  }
+
+  const handleBillClick = (e: React.MouseEvent, table: Table) => {
+    e.stopPropagation() // Prevent table selection
+    setSelectedTableForBill(table)
+    setShowBillModal(true)
   }
 
   const getStatusBadge = (status: Table['status']) => {
@@ -146,7 +155,7 @@ export const TableSelectionPage: React.FC = () => {
                 {sectionTables.map(table => (
                   <Card
                     key={table.id}
-                    className={`cursor-pointer transition-all border-2 ${getTableColor(table.status)}`}
+                    className={`cursor-pointer transition-all border-2 ${getTableColor(table.status)} relative`}
                     onClick={() => handleTableSelect(table)}
                   >
                     <CardContent className="p-4 text-center">
@@ -154,6 +163,19 @@ export const TableSelectionPage: React.FC = () => {
                         {table.table_number}
                       </div>
                       {getStatusBadge(table.status)}
+
+                      {/* Bill Icon for occupied tables */}
+                      {table.status === 'occupied' && table.current_order_id && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="absolute top-1 left-1 h-8 w-8 p-0 bg-giggsi-gold hover:bg-giggsi-gold/80 text-white rounded-full"
+                          onClick={(e) => handleBillClick(e, table)}
+                          title="הצג חשבון"
+                        >
+                          <Receipt className="h-4 w-4" />
+                        </Button>
+                      )}
                     </CardContent>
                   </Card>
                 ))}
@@ -185,6 +207,13 @@ export const TableSelectionPage: React.FC = () => {
           </div>
         </div>
       </main>
+
+      {/* Bill Modal */}
+      <BillModal
+        open={showBillModal}
+        onClose={() => setShowBillModal(false)}
+        table={selectedTableForBill}
+      />
     </div>
   )
 }
