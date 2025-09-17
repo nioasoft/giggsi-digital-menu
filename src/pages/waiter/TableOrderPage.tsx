@@ -12,11 +12,14 @@ import {
   getOrderItems,
   updateOrderItem,
   removeOrderItem,
-  addItemToOrder
+  addItemToOrder,
+  getUnsentItems,
+  sendAllOrderItemsToKitchen
 } from '@/lib/waiterService'
 import { getCurrentWaiter, signOutWaiter } from '@/lib/waiterAuth'
 import { MobileCart, DesktopCart } from '@/components/waiter/MobileCart'
 import { ItemDetailModal } from '@/components/menu/ItemDetailModal'
+import { ExitConfirmDialog } from '@/components/waiter/ExitConfirmDialog'
 import type { Table, Order, OrderItem, MenuItem, WaiterUser, AddOn } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
@@ -38,6 +41,9 @@ export const TableOrderPage: React.FC = () => {
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null)
   const [itemModalOpen, setItemModalOpen] = useState(false)
   const [showCategories, setShowCategories] = useState(true)
+  const [unsentItems, setUnsentItems] = useState<OrderItem[]>([])
+  const [exitDialogOpen, setExitDialogOpen] = useState(false)
+  const [pendingNavigation, setPendingNavigation] = useState<string | null>(null)
 
   useEffect(() => {
     loadTableData()
@@ -47,8 +53,58 @@ export const TableOrderPage: React.FC = () => {
   useEffect(() => {
     if (order) {
       loadOrderItems()
+      loadUnsentItems()
     }
   }, [order])
+
+  const loadUnsentItems = async () => {
+    if (!order) return
+
+    try {
+      const unsent = await getUnsentItems(order.id)
+      setUnsentItems(unsent)
+    } catch (error) {
+      console.error('Error loading unsent items:', error)
+    }
+  }
+
+  const handleSendToKitchen = async () => {
+    if (!order) return
+
+    try {
+      await sendAllOrderItemsToKitchen(order.id)
+      await loadOrderItems()
+      await loadUnsentItems()
+    } catch (error) {
+      console.error('Error sending to kitchen:', error)
+    }
+  }
+
+  const checkUnsentAndNavigate = (path: string) => {
+    if (unsentItems.length > 0) {
+      setPendingNavigation(path)
+      setExitDialogOpen(true)
+    } else {
+      navigate(path)
+    }
+  }
+
+  const handleExitWithoutSending = () => {
+    setExitDialogOpen(false)
+    if (pendingNavigation) {
+      navigate(pendingNavigation)
+      setPendingNavigation(null)
+    }
+  }
+
+  const handleSendAndExit = async () => {
+    await handleSendToKitchen()
+    setExitDialogOpen(false)
+    if (pendingNavigation) {
+      navigate(pendingNavigation)
+      setPendingNavigation(null)
+    }
+  }
 
   useEffect(() => {
     if (selectedCategory) {
@@ -167,6 +223,7 @@ export const TableOrderPage: React.FC = () => {
         // Now add the item with addons
         await addItemToOrder(newOrder.id, item.id, quantity, '', addons)
         await loadOrderItems()
+        await loadUnsentItems()
         // Reload order to get updated totals
         const updatedOrder = await getOpenOrderByTable(table.id)
         if (updatedOrder) setOrder(updatedOrder)
@@ -178,6 +235,7 @@ export const TableOrderPage: React.FC = () => {
       try {
         await addItemToOrder(order.id, item.id, quantity, '', addons)
         await loadOrderItems()
+        await loadUnsentItems()
         // Reload order to get updated totals
         if (table) {
           const updatedOrder = await getOpenOrderByTable(table.id)
@@ -227,7 +285,7 @@ export const TableOrderPage: React.FC = () => {
   }
 
   const handleNavigateToBill = () => {
-    navigate(`/waiter/table/${tableNumber}/bill`)
+    checkUnsentAndNavigate(`/waiter/table/${tableNumber}/bill`)
   }
 
   if (loading) {
@@ -244,11 +302,13 @@ export const TableOrderPage: React.FC = () => {
       <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-sm border-b">
         <div className="flex items-center justify-between p-4">
           <div className="flex items-center gap-2">
-            <Link to="/waiter/tables">
-              <Button variant="ghost" size="icon">
-                <ArrowRight className="h-5 w-5" />
-              </Button>
-            </Link>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => checkUnsentAndNavigate('/waiter/tables')}
+            >
+              <ArrowRight className="h-5 w-5" />
+            </Button>
             <div>
               <h1 className="text-xl font-bold">שולחן {table?.table_number}</h1>
               <p className="text-sm text-muted-foreground">הוספת פריטים להזמנה</p>
@@ -406,6 +466,10 @@ export const TableOrderPage: React.FC = () => {
               onUpdateQuantity={handleUpdateQuantity}
               onRemoveItem={handleRemoveFromOrder}
               onNavigateToBill={handleNavigateToBill}
+              onItemsSent={async () => {
+                await loadOrderItems()
+                await loadUnsentItems()
+              }}
             />
           </div>
         </div>
@@ -418,6 +482,10 @@ export const TableOrderPage: React.FC = () => {
         onUpdateQuantity={handleUpdateQuantity}
         onRemoveItem={handleRemoveFromOrder}
         onNavigateToBill={handleNavigateToBill}
+        onItemsSent={async () => {
+          await loadOrderItems()
+          await loadUnsentItems()
+        }}
       />
 
       {/* Item Detail Modal for adding with addons */}
@@ -429,6 +497,15 @@ export const TableOrderPage: React.FC = () => {
           setSelectedItem(null)
         }}
         onAddToOrder={handleAddToOrder}
+      />
+
+      {/* Exit Confirmation Dialog */}
+      <ExitConfirmDialog
+        open={exitDialogOpen}
+        onClose={() => setExitDialogOpen(false)}
+        unsentCount={unsentItems.length}
+        onSendToKitchen={handleSendAndExit}
+        onExitWithoutSending={handleExitWithoutSending}
       />
     </div>
   )

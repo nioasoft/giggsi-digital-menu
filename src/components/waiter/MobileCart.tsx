@@ -1,11 +1,12 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { ShoppingCart, X, Plus, Minus, Trash2, Receipt } from 'lucide-react'
+import { ShoppingCart, X, Plus, Minus, Trash2, Receipt, Send, CheckCircle } from 'lucide-react'
 import type { Order, OrderItem } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import { formatAddonsDisplay } from '@/lib/priceUtils'
+import { sendItemsToKitchen } from '@/lib/waiterService'
 
 interface MobileCartProps {
   order: Order | null
@@ -13,6 +14,7 @@ interface MobileCartProps {
   onUpdateQuantity: (itemId: string, quantity: number) => Promise<void>
   onRemoveItem: (itemId: string) => Promise<void>
   onNavigateToBill: () => void
+  onItemsSent?: () => Promise<void>
   className?: string
 }
 
@@ -22,15 +24,36 @@ export const MobileCart: React.FC<MobileCartProps> = ({
   onUpdateQuantity,
   onRemoveItem,
   onNavigateToBill,
+  onItemsSent,
   className
 }) => {
   const [isExpanded, setIsExpanded] = useState(false)
+  const [sending, setSending] = useState(false)
 
   if (!order || orderItems.length === 0) {
     return null
   }
 
   const itemCount = orderItems.reduce((sum, item) => sum + item.quantity, 0)
+  const unsentItems = orderItems.filter(item => !item.sent_to_kitchen)
+  const hasUnsentItems = unsentItems.length > 0
+
+  const handleSendToKitchen = async () => {
+    if (!hasUnsentItems) return
+
+    setSending(true)
+    try {
+      const unsentItemIds = unsentItems.map(item => item.id)
+      await sendItemsToKitchen(unsentItemIds)
+      if (onItemsSent) {
+        await onItemsSent()
+      }
+    } catch (error) {
+      console.error('Error sending items to kitchen:', error)
+    } finally {
+      setSending(false)
+    }
+  }
 
   return (
     <>
@@ -50,6 +73,11 @@ export const MobileCart: React.FC<MobileCartProps> = ({
               <Badge className="bg-giggsi-gold text-white">
                 {itemCount} פריטים
               </Badge>
+              {hasUnsentItems && (
+                <Badge className="bg-orange-500 text-white animate-pulse">
+                  {unsentItems.length} לא נשלח
+                </Badge>
+              )}
               <span className="font-semibold">
                 ₪{Math.ceil(order.total_amount)}
               </span>
@@ -80,12 +108,27 @@ export const MobileCart: React.FC<MobileCartProps> = ({
             {/* Cart Items */}
             <div className="flex-1 overflow-y-auto p-4 space-y-3">
               {orderItems.map((item) => (
-                <Card key={item.id} className="p-3">
+                <Card key={item.id} className={cn(
+                  "p-3",
+                  !item.sent_to_kitchen && "border-orange-500"
+                )}>
                   <div className="flex justify-between items-start mb-2">
                     <div className="flex-1">
-                      <p className="font-medium text-sm">
-                        {item.menu_item?.name_he || 'פריט'}
-                      </p>
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium text-sm">
+                          {item.menu_item?.name_he || 'פריט'}
+                        </p>
+                        {item.sent_to_kitchen ? (
+                          <Badge className="bg-green-500 text-white text-xs">
+                            <CheckCircle className="h-3 w-3 ml-1" />
+                            נשלח
+                          </Badge>
+                        ) : (
+                          <Badge className="bg-orange-500 text-white text-xs">
+                            ממתין
+                          </Badge>
+                        )}
+                      </div>
                       {item.addons && item.addons.length > 0 && (
                         <p className="text-xs text-muted-foreground mt-0.5">
                           {formatAddonsDisplay(item.addons, 'he', true)}
@@ -150,10 +193,34 @@ export const MobileCart: React.FC<MobileCartProps> = ({
                   </span>
                 </div>
               </div>
+
+              {/* Send to Kitchen button - shows when there are unsent items */}
+              {hasUnsentItems && (
+                <Button
+                  onClick={handleSendToKitchen}
+                  disabled={sending}
+                  className="w-full h-12 bg-green-600 hover:bg-green-700"
+                  size="lg"
+                >
+                  {sending ? (
+                    <>
+                      <span className="animate-spin">⏳</span>
+                      <span className="mr-2">שולח...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Send className="h-5 w-5 ml-2" />
+                      שלח למטבח/בר ({unsentItems.length} פריטים)
+                    </>
+                  )}
+                </Button>
+              )}
+
               <Button
                 onClick={onNavigateToBill}
                 className="w-full h-12"
                 size="lg"
+                variant={hasUnsentItems ? "outline" : "default"}
               >
                 <Receipt className="h-5 w-5 ml-2" />
                 סגירת חשבון
@@ -173,21 +240,52 @@ export const DesktopCart: React.FC<{
   onUpdateQuantity: (itemId: string, quantity: number) => Promise<void>
   onRemoveItem: (itemId: string) => Promise<void>
   onNavigateToBill: () => void
+  onItemsSent?: () => Promise<void>
 }> = ({
   order,
   orderItems,
   onUpdateQuantity,
   onRemoveItem,
-  onNavigateToBill
+  onNavigateToBill,
+  onItemsSent
 }) => {
+  const [sending, setSending] = useState(false)
+
   if (!order) return null
+
+  const unsentItems = orderItems.filter(item => !item.sent_to_kitchen)
+  const hasUnsentItems = unsentItems.length > 0
+
+  const handleSendToKitchen = async () => {
+    if (!hasUnsentItems) return
+
+    setSending(true)
+    try {
+      const unsentItemIds = unsentItems.map(item => item.id)
+      await sendItemsToKitchen(unsentItemIds)
+      if (onItemsSent) {
+        await onItemsSent()
+      }
+    } catch (error) {
+      console.error('Error sending items to kitchen:', error)
+    } finally {
+      setSending(false)
+    }
+  }
 
   return (
     <Card className="sticky top-20">
       <div className="p-4 border-b">
         <h3 className="font-semibold flex items-center justify-between">
           <span>הזמנה נוכחית</span>
-          <Badge>{orderItems.length} פריטים</Badge>
+          <div className="flex items-center gap-2">
+            <Badge>{orderItems.length} פריטים</Badge>
+            {hasUnsentItems && (
+              <Badge className="bg-orange-500 text-white animate-pulse">
+                {unsentItems.length} לא נשלח
+              </Badge>
+            )}
+          </div>
         </h3>
       </div>
       <div className="p-4">
@@ -200,12 +298,27 @@ export const DesktopCart: React.FC<{
             {/* Items list */}
             <div className="max-h-[400px] overflow-y-auto space-y-3">
               {orderItems.map((item) => (
-                <div key={item.id} className="border rounded-lg p-3">
+                <div key={item.id} className={cn(
+                  "border rounded-lg p-3",
+                  !item.sent_to_kitchen && "border-orange-500"
+                )}>
                   <div className="flex justify-between items-start mb-2">
                     <div className="flex-1">
-                      <p className="font-medium">
-                        {item.menu_item?.name_he || 'פריט'}
-                      </p>
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium">
+                          {item.menu_item?.name_he || 'פריט'}
+                        </p>
+                        {item.sent_to_kitchen ? (
+                          <Badge className="bg-green-500 text-white text-xs">
+                            <CheckCircle className="h-3 w-3 ml-1" />
+                            נשלח
+                          </Badge>
+                        ) : (
+                          <Badge className="bg-orange-500 text-white text-xs">
+                            ממתין
+                          </Badge>
+                        )}
+                      </div>
                       {item.addons && item.addons.length > 0 && (
                         <p className="text-xs text-muted-foreground mt-0.5">
                           {formatAddonsDisplay(item.addons, 'he', true)}
@@ -267,10 +380,33 @@ export const DesktopCart: React.FC<{
               </div>
             </div>
 
+            {/* Send to Kitchen button - shows when there are unsent items */}
+            {hasUnsentItems && (
+              <Button
+                onClick={handleSendToKitchen}
+                disabled={sending}
+                className="w-full mt-4 bg-green-600 hover:bg-green-700"
+                size="lg"
+              >
+                {sending ? (
+                  <>
+                    <span className="animate-spin">⏳</span>
+                    <span className="mr-2">שולח...</span>
+                  </>
+                ) : (
+                  <>
+                    <Send className="h-5 w-5 ml-2" />
+                    שלח למטבח/בר ({unsentItems.length} פריטים)
+                  </>
+                )}
+              </Button>
+            )}
+
             <Button
               onClick={onNavigateToBill}
               className="w-full mt-4"
               size="lg"
+              variant={hasUnsentItems ? "outline" : "default"}
             >
               <Receipt className="h-4 w-4 ml-2" />
               סגירת חשבון

@@ -382,6 +382,59 @@ export function calculateTotal(subtotal: number): number {
   return subtotal + calculateServiceCharge(subtotal)
 }
 
+// Send to kitchen functions
+export async function sendItemsToKitchen(itemIds: string[]): Promise<void> {
+  const { error } = await supabase
+    .from('order_items')
+    .update({
+      sent_to_kitchen: true,
+      sent_to_kitchen_at: new Date().toISOString()
+    })
+    .in('id', itemIds)
+
+  if (error) throw error
+}
+
+export async function getUnsentItems(orderId: string): Promise<OrderItem[]> {
+  const { data, error } = await supabase
+    .from('order_items')
+    .select(`
+      *,
+      menu_item:menu_items(*)
+    `)
+    .eq('order_id', orderId)
+    .eq('sent_to_kitchen', false)
+    .order('created_at', { ascending: true })
+
+  if (error) throw error
+  return data || []
+}
+
+export async function hasUnsentItems(orderId: string): Promise<boolean> {
+  const { data, error } = await supabase
+    .from('order_items')
+    .select('id')
+    .eq('order_id', orderId)
+    .eq('sent_to_kitchen', false)
+    .limit(1)
+
+  if (error) throw error
+  return (data?.length ?? 0) > 0
+}
+
+export async function sendAllOrderItemsToKitchen(orderId: string): Promise<void> {
+  const { error } = await supabase
+    .from('order_items')
+    .update({
+      sent_to_kitchen: true,
+      sent_to_kitchen_at: new Date().toISOString()
+    })
+    .eq('order_id', orderId)
+    .eq('sent_to_kitchen', false)
+
+  if (error) throw error
+}
+
 // Order logging functions
 interface OrderLogData {
   order_id: string

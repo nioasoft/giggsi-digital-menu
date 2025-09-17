@@ -202,6 +202,8 @@ export interface OrderItem {
   total_price: number
   notes?: string
   addons?: AddOn[]
+  sent_to_kitchen?: boolean
+  sent_to_kitchen_at?: string
   created_at: string
   updated_at: string
 }
