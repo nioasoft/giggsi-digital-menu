@@ -40,7 +40,7 @@ export async function getArchivedKitchenOrders(): Promise<KitchenBarOrder[]> {
   const twentyFourHoursAgo = new Date()
   twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24)
 
-  // First get the archived items with basic info
+  // Get archived items with menu and order info joined
   const { data: items, error: itemsError } = await supabase
     .from('order_items')
     .select(`
@@ -54,7 +54,11 @@ export async function getArchivedKitchenOrders(): Promise<KitchenBarOrder[]> {
       sent_to_kitchen_at,
       created_at,
       kitchen_ready_at,
-      menu_items!inner(name_he)
+      menu_items!inner(name_he),
+      orders!inner(
+        id,
+        table_id
+      )
     `)
     .eq('kitchen_status', 'archived')
     .gte('kitchen_ready_at', twentyFourHoursAgo.toISOString())
@@ -70,22 +74,15 @@ export async function getArchivedKitchenOrders(): Promise<KitchenBarOrder[]> {
     return []
   }
 
-  // Get unique order IDs
-  const orderIds = [...new Set(items.map(item => item.order_id))]
+  // Extract unique table IDs from the joined data
+  const tableIds = [...new Set(
+    items
+      .map((item: any) => item.orders?.table_id)
+      .filter(Boolean)
+  )]
 
-  // Fetch orders to get table_id
-  const { data: orders, error: ordersError } = await supabase
-    .from('orders')
-    .select('id, table_id')
-    .in('id', orderIds)
-
-  if (ordersError) {
-    console.error('Error fetching order details:', ordersError)
-    throw ordersError
-  }
-
-  if (!orders || orders.length === 0) {
-    // If no orders found, return items with table_number 0
+  if (tableIds.length === 0) {
+    // No table IDs found, return with table_number 0
     const transformedData = items.map((item: any) => ({
       id: item.id,
       order_id: item.order_id,
@@ -107,19 +104,6 @@ export async function getArchivedKitchenOrders(): Promise<KitchenBarOrder[]> {
     return transformedData
   }
 
-  // Debug: Log orders to see table_id values
-  console.log('Archived orders data:', orders.slice(0, 3))
-
-  // Get unique table IDs
-  const tableIds = [...new Set(orders.map(order => order.table_id).filter(Boolean))]
-
-  console.log('Table IDs to fetch:', tableIds)
-
-  // If no table IDs, we have a problem
-  if (tableIds.length === 0) {
-    console.warn('No table IDs found in orders, all will show as 0')
-  }
-
   // Fetch tables
   const { data: tables, error: tablesError } = await supabase
     .from('tables')
@@ -131,22 +115,10 @@ export async function getArchivedKitchenOrders(): Promise<KitchenBarOrder[]> {
     throw tablesError
   }
 
-  console.log('Tables fetched:', tables)
-
   // Create a map of table_id to table_number
   const tableMap = new Map(
     tables?.map(table => [table.id, table.table_number]) || []
   )
-
-  // Create a map of order_id to table_number
-  const orderTableMap = new Map(
-    orders.map(order => [
-      order.id,
-      order.table_id ? (tableMap.get(order.table_id) || 0) : 0
-    ])
-  )
-
-  console.log('Order to table mapping sample:', Array.from(orderTableMap.entries()).slice(0, 3))
 
   // Transform data to match KitchenBarOrder interface
   const transformedData = items.map((item: any) => ({
@@ -164,7 +136,7 @@ export async function getArchivedKitchenOrders(): Promise<KitchenBarOrder[]> {
     ready_at: item.kitchen_ready_at,
     item_name: item.menu_items?.name_he || '',
     item_name_en: '',
-    table_number: orderTableMap.get(item.order_id) || 0,
+    table_number: item.orders?.table_id ? (tableMap.get(item.orders.table_id) || 0) : 0,
     waiter_name: null
   }))
 
