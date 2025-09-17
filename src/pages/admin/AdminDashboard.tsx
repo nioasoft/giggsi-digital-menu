@@ -4,15 +4,16 @@ import { useTranslation } from 'react-i18next'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { signOut } from '@/lib/auth'
-import { 
-  LogOut, 
-  UtensilsCrossed, 
-  FolderOpen, 
-  Image, 
+import {
+  LogOut,
+  UtensilsCrossed,
+  FolderOpen,
+  Image,
   Bell,
   Settings,
   Users,
-  Package
+  Package,
+  FileText
 } from 'lucide-react'
 
 export const AdminDashboard: React.FC = () => {
@@ -72,6 +73,12 @@ export const AdminDashboard: React.FC = () => {
       description: 'ניהול משתמשי מערכת המלצרים',
       icon: Users,
       path: '/admin-giggsi-2024/waiters'
+    },
+    {
+      title: 'רישום הזמנות',
+      description: 'צפייה ברישום הזמנות ותשלומים',
+      icon: FileText,
+      path: '/admin-giggsi-2024/orders-log'
     }
   ]
 

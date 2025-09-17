@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { PasswordModal } from '@/components/waiter/PasswordModal'
 import {
   Loader2,
   ArrowLeft,
@@ -11,7 +12,9 @@ import {
   CreditCard,
   DollarSign,
   Check,
-  X
+  X,
+  Smartphone,
+  CreditCard as PayboxIcon
 } from 'lucide-react'
 import {
   getTableByNumber,
@@ -31,6 +34,10 @@ export const BillPage: React.FC = () => {
   const [loading, setLoading] = useState(true)
   const [processing, setProcessing] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [passwordModalOpen, setPasswordModalOpen] = useState(false)
+  const [pendingAction, setPendingAction] = useState<(() => void) | null>(null)
+  const [modalTitle, setModalTitle] = useState('')
+  const [modalDescription, setModalDescription] = useState('')
 
   useEffect(() => {
     loadBillData()
@@ -76,6 +83,21 @@ export const BillPage: React.FC = () => {
     }
   }
 
+  const requestPasswordForAction = (action: () => void, title: string, description: string) => {
+    setPendingAction(() => action)
+    setModalTitle(title)
+    setModalDescription(description)
+    setPasswordModalOpen(true)
+  }
+
+  const handlePasswordConfirm = () => {
+    setPasswordModalOpen(false)
+    if (pendingAction) {
+      pendingAction()
+      setPendingAction(null)
+    }
+  }
+
   const handleCloseWithoutPayment = async () => {
     if (!order) return
 
@@ -94,8 +116,6 @@ export const BillPage: React.FC = () => {
 
   const handleCancelOrder = async () => {
     if (!order) return
-
-    if (!confirm('האם אתה בטוח שברצונך לבטל את ההזמנה? פעולה זו אינה ניתנת לביטול.')) return
 
     setProcessing(true)
     try {
@@ -272,7 +292,11 @@ export const BillPage: React.FC = () => {
                 <h3 className="font-semibold">אמצעי תשלום:</h3>
                 <div className="grid grid-cols-2 gap-3">
                   <Button
-                    onClick={() => handlePayment('cash')}
+                    onClick={() => requestPasswordForAction(
+                      () => handlePayment('cash'),
+                      'תשלום במזומן',
+                      'הכנס סיסמה לאישור תשלום במזומן'
+                    )}
                     disabled={processing}
                     className="gap-2"
                   >
@@ -280,7 +304,35 @@ export const BillPage: React.FC = () => {
                     מזומן
                   </Button>
                   <Button
-                    onClick={() => handlePayment('credit')}
+                    onClick={() => requestPasswordForAction(
+                      () => handlePayment('bit'),
+                      'תשלום בביט',
+                      'הכנס סיסמה לאישור תשלום בביט'
+                    )}
+                    disabled={processing}
+                    className="gap-2"
+                  >
+                    <Smartphone className="h-4 w-4" />
+                    ביט
+                  </Button>
+                  <Button
+                    onClick={() => requestPasswordForAction(
+                      () => handlePayment('paybox'),
+                      'תשלום בפייבוקס',
+                      'הכנס סיסמה לאישור תשלום בפייבוקס'
+                    )}
+                    disabled={processing}
+                    className="gap-2"
+                  >
+                    <PayboxIcon className="h-4 w-4" />
+                    פייבוקס
+                  </Button>
+                  <Button
+                    onClick={() => requestPasswordForAction(
+                      () => handlePayment('credit'),
+                      'תשלום באשראי',
+                      'הכנס סיסמה לאישור תשלום באשראי'
+                    )}
                     disabled={processing}
                     className="gap-2"
                   >
@@ -300,7 +352,11 @@ export const BillPage: React.FC = () => {
                   </Button>
                   <Button
                     variant="destructive"
-                    onClick={handleCancelOrder}
+                    onClick={() => requestPasswordForAction(
+                      handleCancelOrder,
+                      'ביטול הזמנה',
+                      'הכנס סיסמה לאישור ביטול ההזמנה'
+                    )}
                     disabled={processing}
                     className="gap-2"
                   >
@@ -333,6 +389,15 @@ export const BillPage: React.FC = () => {
           }
         }
       `}</style>
+
+      {/* Password Modal */}
+      <PasswordModal
+        open={passwordModalOpen}
+        onClose={() => setPasswordModalOpen(false)}
+        onConfirm={handlePasswordConfirm}
+        title={modalTitle}
+        description={modalDescription}
+      />
     </div>
   )
 }

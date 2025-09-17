@@ -244,6 +244,10 @@ export async function markOrderAsPaid(
   orderId: string,
   paymentMethod: string = 'cash'
 ): Promise<void> {
+  // Get order details first for logging
+  const order = await getOrderWithDetails(orderId)
+  if (!order) throw new Error('Order not found')
+
   const { error } = await supabase
     .from('orders')
     .update({
@@ -256,11 +260,19 @@ export async function markOrderAsPaid(
 
   if (error) throw error
 
-  // Get order details to update table
-  const order = await getOrderById(orderId)
-  if (order) {
-    await updateTableStatus(order.table_id, 'available')
-  }
+  // Log the order
+  await logOrder({
+    order_id: orderId,
+    table_number: order.table.table_number,
+    total_amount: order.total_amount,
+    payment_method: paymentMethod,
+    waiter_id: order.waiter_id,
+    waiter_name: order.waiter_name,
+    status: 'paid'
+  })
+
+  // Update table status
+  await updateTableStatus(order.table_id, 'available')
 }
 
 export async function closeOrder(orderId: string): Promise<void> {
@@ -282,6 +294,10 @@ export async function closeOrder(orderId: string): Promise<void> {
 }
 
 export async function cancelOrder(orderId: string): Promise<void> {
+  // Get order details first for logging
+  const order = await getOrderWithDetails(orderId)
+  if (!order) throw new Error('Order not found')
+
   const { error } = await supabase
     .from('orders')
     .update({
@@ -292,11 +308,19 @@ export async function cancelOrder(orderId: string): Promise<void> {
 
   if (error) throw error
 
-  // Get order details to update table
-  const order = await getOrderById(orderId)
-  if (order) {
-    await updateTableStatus(order.table_id, 'available')
-  }
+  // Log the cancelled order
+  await logOrder({
+    order_id: orderId,
+    table_number: order.table.table_number,
+    total_amount: order.total_amount,
+    payment_method: null,
+    waiter_id: order.waiter_id,
+    waiter_name: order.waiter_name,
+    status: 'cancelled'
+  })
+
+  // Update table status
+  await updateTableStatus(order.table_id, 'available')
 }
 
 // Get order with all details for bill
@@ -356,4 +380,56 @@ export function calculateServiceCharge(subtotal: number): number {
 
 export function calculateTotal(subtotal: number): number {
   return subtotal + calculateServiceCharge(subtotal)
+}
+
+// Order logging functions
+interface OrderLogData {
+  order_id: string
+  table_number: number
+  total_amount: number
+  payment_method: string | null
+  waiter_id: string
+  waiter_name: string
+  status: 'paid' | 'cancelled' | 'closed'
+}
+
+export async function logOrder(data: OrderLogData): Promise<void> {
+  const { error } = await supabase
+    .from('order_logs')
+    .insert(data)
+
+  if (error) {
+    console.error('Failed to log order:', error)
+    // Don't throw - logging shouldn't break the main flow
+  }
+}
+
+export async function getOrderLogs(startDate?: Date, endDate?: Date) {
+  let query = supabase
+    .from('order_logs')
+    .select('*')
+    .order('created_at', { ascending: false })
+
+  if (startDate) {
+    query = query.gte('created_at', startDate.toISOString())
+  }
+
+  if (endDate) {
+    query = query.lte('created_at', endDate.toISOString())
+  }
+
+  const { data, error } = await query
+
+  if (error) throw error
+  return data || []
+}
+
+export async function getOrderLogsSummary() {
+  const { data, error } = await supabase
+    .from('order_logs_summary')
+    .select('*')
+    .limit(30) // Last 30 days
+
+  if (error) throw error
+  return data || []
 }

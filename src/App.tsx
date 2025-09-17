@@ -12,7 +12,10 @@ import { SettingsPage } from '@/pages/admin/SettingsPage'
 import { AddOnGroupsPage } from '@/pages/admin/AddOnGroupsPage'
 import { AddOnsPage } from '@/pages/admin/AddOnsPage'
 import { WaitersPage } from '@/pages/admin/WaitersPage'
+import { OrdersLogPage } from '@/pages/admin/OrdersLogPage'
 import { ProtectedRoute } from '@/components/admin/ProtectedRoute'
+import { KitchenDisplayPage } from '@/pages/kitchen/KitchenDisplayPage'
+import { BarDisplayPage } from '@/pages/bar/BarDisplayPage'
 import { WaiterLoginPage } from '@/pages/waiter/WaiterLoginPage'
 import { WaiterRegisterPage } from '@/pages/waiter/WaiterRegisterPage'
 import { TableSelectionPage } from '@/pages/waiter/TableSelectionPage'
@@ -120,6 +123,18 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/admin-giggsi-2024/orders-log"
+            element={
+              <ProtectedRoute>
+                <OrdersLogPage />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Kitchen and Bar Display Routes - No Layout */}
+          <Route path="/kitchen" element={<KitchenDisplayPage />} />
+          <Route path="/bar" element={<BarDisplayPage />} />
 
           {/* Waiter Routes - No Layout */}
           <Route path="/waiter/login" element={<WaiterLoginPage />} />
