@@ -9,7 +9,7 @@ import {
   subscribeToBarOrders,
   type KitchenBarOrder
 } from '@/lib/kitchenBarService'
-import { groupOrdersByTable, type DisplayStatus } from '@/lib/stationUtils'
+import { groupOrdersByTable } from '@/lib/stationUtils'
 
 export const BarDisplayPage: React.FC = () => {
   const [orders, setOrders] = useState<KitchenBarOrder[]>([])
@@ -46,35 +46,18 @@ export const BarDisplayPage: React.FC = () => {
     }
   }
 
-  const handleStatusChange = async (itemId: string, status: DisplayStatus) => {
-    try {
-      await updateBarItemStatus(itemId, status)
-      // Update local state immediately for better UX
-      setOrders(prev =>
-        prev.map(order =>
-          order.id === itemId ? { ...order, status } : order
-        )
-      )
-      // Reload to get fresh data
-      await loadOrders()
-    } catch (err: any) {
-      console.error('Error updating status:', err)
-      setError('שגיאה בעדכון סטטוס')
-    }
-  }
-
   const handleOrderReady = async (tableNumber: number) => {
     try {
       // Get all orders for this table
       const tableOrders = orders.filter(o => o.table_number === tableNumber)
 
-      // Mark all as ready/archived
+      // Mark all as archived (ready)
       for (const order of tableOrders) {
         await updateBarItemStatus(order.id, 'archived')
       }
 
-      // Remove from display
-      setOrders(prev => prev.filter(o => o.table_number !== tableNumber))
+      // Reload orders to refresh display
+      await loadOrders()
 
       // Show success message
       const audio = new Audio('/notification.mp3')
@@ -118,7 +101,7 @@ export const BarDisplayPage: React.FC = () => {
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        <div className="flex gap-4 overflow-x-auto pb-4" style={{ scrollbarWidth: 'thin' }}>
           {Array.from(ordersByTable.entries())
             .sort(([, a], [, b]) => {
               // Sort by earliest order creation time
@@ -131,7 +114,6 @@ export const BarDisplayPage: React.FC = () => {
                 key={tableNumber}
                 tableNumber={tableNumber}
                 orders={tableOrders}
-                onStatusChange={handleStatusChange}
                 onOrderReady={handleOrderReady}
               />
             ))}

@@ -20,7 +20,6 @@ import {
   getTableByNumber,
   getOrderWithDetails,
   markOrderAsPaid,
-  closeOrder,
   cancelOrder
 } from '@/lib/waiterService'
 import { formatAddonsDisplay, getAddonsPrice } from '@/lib/priceUtils'
@@ -98,21 +97,7 @@ export const BillPage: React.FC = () => {
     }
   }
 
-  const handleCloseWithoutPayment = async () => {
-    if (!order) return
-
-    if (!confirm('האם אתה בטוח שברצונך לסגור את ההזמנה ללא תשלום?')) return
-
-    setProcessing(true)
-    try {
-      await closeOrder(order.id)
-      navigate('/waiter/tables')
-    } catch (err: any) {
-      setError(err.message || 'שגיאה בסגירת ההזמנה')
-    } finally {
-      setProcessing(false)
-    }
-  }
+  // handleCloseWithoutPayment removed - no longer needed
 
   const handleCancelOrder = async () => {
     if (!order) return
@@ -341,15 +326,7 @@ export const BillPage: React.FC = () => {
                   </Button>
                 </div>
 
-                <div className="border-t pt-4 flex gap-2">
-                  <Button
-                    variant="outline"
-                    onClick={handleCloseWithoutPayment}
-                    disabled={processing}
-                    className="flex-1"
-                  >
-                    סגור ללא תשלום
-                  </Button>
+                <div className="border-t pt-4">
                   <Button
                     variant="destructive"
                     onClick={() => requestPasswordForAction(
@@ -358,7 +335,7 @@ export const BillPage: React.FC = () => {
                       'הכנס סיסמה לאישור ביטול ההזמנה'
                     )}
                     disabled={processing}
-                    className="gap-2"
+                    className="w-full gap-2"
                   >
                     <X className="h-4 w-4" />
                     בטל הזמנה

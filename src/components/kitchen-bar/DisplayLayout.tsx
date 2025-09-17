@@ -54,12 +54,12 @@ export const DisplayLayout: React.FC<DisplayLayoutProps> = ({ children, title, s
       {/* Main content */}
       <div className="landscape-content">
         {/* Header */}
-        <header className="bg-gray-800 border-b border-gray-700 px-6 py-4">
+        <header className="bg-gray-800 border-b border-gray-700 px-6 py-2">
           <div className="flex justify-between items-center">
             <div>
-              <h1 className="text-3xl font-bold text-giggsi-gold">{title}</h1>
+              <h1 className="text-2xl font-bold text-giggsi-gold">{title}</h1>
               {subtitle && (
-                <p className="text-sm text-gray-400 mt-1">{subtitle}</p>
+                <p className="text-xs text-gray-400">{subtitle}</p>
               )}
             </div>
             <div className="text-sm text-gray-400">
@@ -72,7 +72,7 @@ export const DisplayLayout: React.FC<DisplayLayoutProps> = ({ children, title, s
         </header>
 
         {/* Content */}
-        <main className="p-6 h-[calc(100vh-5rem)] overflow-auto">
+        <main className="p-6 h-[calc(100vh-3.5rem)] overflow-auto">
           {children}
         </main>
       </div>
