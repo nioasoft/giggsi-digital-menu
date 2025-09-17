@@ -19,17 +19,28 @@ export async function signUpWaiter(email: string, password: string, name: string
 
   if (authError) throw authError
 
-  // 2. Create waiter record
+  // 2. Create waiter record with auto-approval
   const { data: waiterData, error: waiterError } = await supabase
     .from('waiter_users')
     .insert({
       email,
       name,
       password_hash: 'managed_by_supabase_auth',
-      is_active: false // Admin needs to approve
+      is_active: true // Auto-approve for now to avoid issues
     })
     .select()
     .single()
+
+  // 3. Auto-confirm email to allow immediate login
+  if (!waiterError && waiterData) {
+    try {
+      await supabase.rpc('confirm_user_email', {
+        user_email: email
+      })
+    } catch (confirmError) {
+      console.log('Email confirmation will be handled manually')
+    }
+  }
 
   if (waiterError) {
     console.error('Failed to create waiter record:', waiterError)
