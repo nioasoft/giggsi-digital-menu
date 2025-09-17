@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react'
 import { DisplayLayout } from '@/components/kitchen-bar/DisplayLayout'
 import { OrderCard } from '@/components/kitchen-bar/OrderCard'
+import { ArchivedOrdersModal } from '@/components/kitchen-bar/ArchivedOrdersModal'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Loader2 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Loader2, History } from 'lucide-react'
 import {
   getKitchenOrders,
   updateKitchenItemStatus,
@@ -15,6 +17,7 @@ export const KitchenDisplayPage: React.FC = () => {
   const [orders, setOrders] = useState<KitchenBarOrder[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [showArchivedOrders, setShowArchivedOrders] = useState(false)
 
   useEffect(() => {
     loadOrders()
@@ -95,10 +98,22 @@ export const KitchenDisplayPage: React.FC = () => {
   }
 
   return (
-    <DisplayLayout
-      title="מטבח"
-      subtitle={`${ordersByBatch.size} הזמנות פעילות`}
-    >
+    <>
+      <DisplayLayout
+        title="מטבח"
+        subtitle={`${ordersByBatch.size} הזמנות פעילות`}
+        headerActions={
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowArchivedOrders(true)}
+            className="bg-gray-700 hover:bg-gray-600 text-white border-gray-600"
+          >
+            <History className="h-4 w-4 ml-2" />
+            הזמנות שנסגרו
+          </Button>
+        }
+      >
       {error && (
         <Alert variant="destructive" className="mb-4">
           <AlertDescription>{error}</AlertDescription>
@@ -134,6 +149,12 @@ export const KitchenDisplayPage: React.FC = () => {
             ))}
         </div>
       )}
-    </DisplayLayout>
+      </DisplayLayout>
+
+      <ArchivedOrdersModal
+        open={showArchivedOrders}
+        onClose={() => setShowArchivedOrders(false)}
+      />
+    </>
   )
 }

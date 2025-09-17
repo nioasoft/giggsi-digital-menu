@@ -4,9 +4,10 @@ interface DisplayLayoutProps {
   children: React.ReactNode
   title: string
   subtitle?: string
+  headerActions?: React.ReactNode
 }
 
-export const DisplayLayout: React.FC<DisplayLayoutProps> = ({ children, title, subtitle }) => {
+export const DisplayLayout: React.FC<DisplayLayoutProps> = ({ children, title, subtitle, headerActions }) => {
   useEffect(() => {
     // Force landscape orientation
     const lockOrientation = async () => {
@@ -56,10 +57,17 @@ export const DisplayLayout: React.FC<DisplayLayoutProps> = ({ children, title, s
         {/* Header */}
         <header className="bg-gray-800 border-b border-gray-700 px-6 py-2">
           <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-2xl font-bold text-giggsi-gold">{title}</h1>
-              {subtitle && (
-                <p className="text-xs text-gray-400">{subtitle}</p>
+            <div className="flex items-center gap-4">
+              <div>
+                <h1 className="text-2xl font-bold text-giggsi-gold">{title}</h1>
+                {subtitle && (
+                  <p className="text-xs text-gray-400">{subtitle}</p>
+                )}
+              </div>
+              {headerActions && (
+                <div className="flex items-center gap-2">
+                  {headerActions}
+                </div>
               )}
             </div>
             <div className="text-sm text-gray-400">

@@ -35,6 +35,62 @@ export async function getKitchenOrders(): Promise<KitchenBarOrder[]> {
   return data || []
 }
 
+// Get archived kitchen orders (last 24 hours)
+export async function getArchivedKitchenOrders(): Promise<KitchenBarOrder[]> {
+  const twentyFourHoursAgo = new Date()
+  twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24)
+
+  const { data, error } = await supabase
+    .from('order_items')
+    .select(`
+      id,
+      order_id,
+      quantity,
+      notes,
+      addons,
+      batch_number,
+      cooking_preference,
+      sent_to_kitchen_at,
+      created_at,
+      kitchen_ready_at,
+      menu_items!inner(name_he),
+      orders!inner(
+        tables!inner(table_number)
+      )
+    `)
+    .eq('kitchen_status', 'archived')
+    .gte('kitchen_ready_at', twentyFourHoursAgo.toISOString())
+    .order('kitchen_ready_at', { ascending: false })
+    .limit(100)
+
+  if (error) {
+    console.error('Error fetching archived orders:', error)
+    throw error
+  }
+
+  // Transform data to match KitchenBarOrder interface
+  const transformedData = (data || []).map((item: any) => ({
+    id: item.id,
+    order_id: item.order_id,
+    quantity: item.quantity,
+    notes: item.notes,
+    addons: item.addons,
+    batch_number: item.batch_number,
+    cooking_preference: item.cooking_preference,
+    status: 'archived' as DisplayStatus,
+    created_at: item.created_at,
+    sent_to_kitchen_at: item.sent_to_kitchen_at,
+    started_at: null,
+    ready_at: item.kitchen_ready_at,
+    item_name: item.menu_items?.name_he || '',
+    item_name_en: '',
+    table_number: item.orders?.tables?.table_number || 0,
+    waiter_name: null
+  }))
+
+  return transformedData
+}
+
 // Get bar orders
 export async function getBarOrders(): Promise<KitchenBarOrder[]> {
   const { data, error } = await supabase
